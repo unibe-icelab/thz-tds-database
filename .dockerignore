@@ -9,3 +9,4 @@ venv/
 .git/
 .gitignore
 *.db # If using SQLite and don't want to copy the dev db
+*.sqlite3 # If using SQLite and don't want to copy the dev db

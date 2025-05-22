@@ -59,17 +59,25 @@ TEMPLATES = [
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'your_mysql_db_name',
-        'USER': 'your_mysql_user',
-        'PASSWORD': 'your_mysql_password',
-        'HOST': 'your_mysql_host',  # e.g., 'db' if using Docker Compose, or an IP/hostname
-        'PORT': '3306',             # Default MySQL port
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# mysql
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'your_mysql_db_name',
+#         'USER': 'your_mysql_user',
+#         'PASSWORD': 'your_mysql_password',
+#         'HOST': 'your_mysql_host',  # e.g., 'db' if using Docker Compose, or an IP/hostname
+#         'PORT': '3306',             # Default MySQL port
+#         'OPTIONS': {
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+#         },
+#     }
+# }
 
 # For django-plotly-dash
 X_FRAME_OPTIONS = 'SAMEORIGIN'  # Important for Dash iframes

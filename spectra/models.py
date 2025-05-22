@@ -1,0 +1,34 @@
+# spectra/models.py
+from django.db import models
+from django.contrib.auth.models import User
+from django.utils import timezone
+
+
+class Material(models.Model):
+    name = models.CharField(max_length=200, unique=True)
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Spectrum(models.Model):
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, related_name='spectra')
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    upload_timestamp = models.DateTimeField(default=timezone.now)
+
+    spectral_data = models.JSONField(
+        help_text="JSON object with 'frequency' and 'intensity' keys, each holding a list of numbers."
+    )
+    metadata = models.JSONField(
+        blank=True, null=True,
+        help_text="Additional metadata as a JSON object (e.g., units, temperature)."
+    )
+    notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        verbose_name_plural = "Spectra"
+        ordering = ['-upload_timestamp']
+
+    def __str__(self):
+        return f"Spectrum for {self.material.name} ({self.upload_timestamp.strftime('%Y-%m-%d')})"

@@ -1,0 +1,13 @@
+{% extends "spectra/base.html" %}
+
+{% block title %}Home - THz Spectra Database{% endblock %}
+
+{% block content %}
+<h1>Welcome to the THz Spectra Database</h1>
+<p>This is a dedicated home page for the spectra application.</p>
+<p>
+    You can <a href="{% url 'spectra:spectrum_list' %}">view all available spectra</a>,
+    manage <a href="{% url 'spectra:material_list' %}">materials</a>,
+    or <a href="{% url 'spectra:upload_spectrum' %}">upload a new spectrum</a>.
+</p>
+{% endblock %}

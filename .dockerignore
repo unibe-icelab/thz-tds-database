@@ -1,0 +1,11 @@
+# .dockerignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.git/
+.gitignore
+*.db # If using SQLite and don't want to copy the dev db

@@ -1,0 +1,24 @@
+{% extends "spectra/base.html" %}
+
+{% block title %}All Spectra{% endblock %}
+
+{% block content %}
+<h1>All Spectra</h1>
+{% if spectra %}
+    <ul>
+        {% for spectrum in spectra %}
+            <li>
+                <a href="{% url 'spectra:spectrum_detail' pk=spectrum.pk %}">
+                    {{ spectrum.material.name }} - Uploaded: {{ spectrum.upload_timestamp|date:"Y-m-d H:i" }}
+                </a>
+                {% if spectrum.uploaded_by %}
+                    (by {{ spectrum.uploaded_by.username }})
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No spectra found. <a href="{% url 'spectra:upload_spectrum' %}">Upload the first one?</a></p>
+{% endif %}
+<p><a href="{% url 'spectra:upload_spectrum' %}">Upload New Spectrum</a></p>
+{% endblock %}

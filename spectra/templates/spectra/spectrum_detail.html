@@ -1,0 +1,47 @@
+
+
+{% extends "spectra/base.html" %}
+{% load plotly_dash %}
+
+{% block title %}Spectrum: {{ spectrum.material.name }}{% endblock %}
+
+{% block content %}
+<h1>Spectrum: {{ spectrum.material.name }}</h1>
+<p>Uploaded by: {{ spectrum.uploaded_by.username|default:"N/A" }} on {{ spectrum.upload_timestamp|date:"Y-m-d H:i:s" }}</p>
+
+<div style="display: flex; flex-wrap: wrap;">
+    <div style="flex: 3; min-width: 400px; padding-right: 20px;">
+        <h2>Spectral Data Plot</h2>
+        {% if can_plot_spectrum %}
+            <div class="plotly-graph-div">
+                {% plotly_app name=dash_app_name initial_arguments=dash_initial_arguments %}
+            </div>
+        {% else %}
+            <p>Spectral data is incomplete or missing and cannot be plotted.</p>
+            {% if spectrum.spectral_data %}
+                <pre>{{ spectrum.spectral_data }}</pre>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <div style="flex: 1; min-width: 250px; border-left: 1px solid #eee; padding-left: 20px;">
+        <h2>Metadata</h2>
+        {% if spectrum.metadata %}
+            <ul>
+                {% for key, value in spectrum.metadata.items %}
+                    <li><strong>{{ key|capfirst }}:</strong> {{ value }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No additional metadata provided.</p>
+        {% endif %}
+
+        <h2>Notes</h2>
+        <p>{{ spectrum.notes|linebreaksbr|default:"No notes." }}</p>
+    </div>
+</div>
+
+<hr>
+<p><a href="{% url 'spectra:spectrum_list' %}">Back to Spectra List</a></p>
+<p><a href="{% url 'spectra:material_detail' pk=spectrum.material.pk %}">Back to {{ spectrum.material.name }}</a></p>
+{% endblock %}

@@ -3,3 +3,4 @@ pydotthz~=0.4.0
 plotly~=6.1.1
 dash~=2.18.2
 gunicorn
+mysqlclient

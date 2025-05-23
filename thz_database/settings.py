@@ -85,13 +85,10 @@ PLOTLY_COMPONENTS = [  # Add components if needed, often auto-detected
     'dash.dcc',
     'dash.html',
     'dash',
-    'dpd_components'
 ]
-# Optional: If you want Dash assets served locally or from CDN
-# PLOTLY_DASH = {
-#    "serve_locally": True, # or False to use CDN
-# }
-
+PLOTLY_DASH = {
+    "serve_locally": True,
+}
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'

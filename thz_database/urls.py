@@ -12,6 +12,7 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')), # Handles login, logout, etc.
     path('spectra/', include('spectra.urls', namespace='spectra')),
     path('', RedirectView.as_view(url='/spectra/', permanent=True)),
+    path('django_plotly_dash/', include('django_plotly_dash.urls')),
 ]
 
 # Serve static files during development

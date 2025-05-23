@@ -22,7 +22,7 @@ class SpectrumAdmin(admin.ModelAdmin):
     )
 
     def has_spectral_data(self, obj):
-        return bool(obj.spectral_data and 'frequency' in obj.spectral_data and 'intensity' in obj.spectral_data)
+        return bool(obj.spectral_data and 'frequency' in obj.spectral_data)
 
     has_spectral_data.boolean = True
 

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}THz Spectra Database{% endblock %}</title>
     <style>
-        body { font-family: sans-serif; margin: 20px; line-height: 1.6; }
+        body { font-family: sans-serif; margin: 0px; line-height: 1.6; }
         header { background-color: #f4f4f4; padding: 10px; margin-bottom: 20px; }
         nav ul { list-style-type: none; padding: 0; }
         nav ul li { display: inline; margin-right: 15px; }
@@ -31,7 +31,6 @@
         <nav class="container">
             <ul>
                 <li><a href="{% url 'spectra:spectrum_list' %}">Spectra List</a></li>
-                <li><a href="{% url 'spectra:material_list' %}">Materials</a></li>
                 <li><a href="{% url 'spectra:upload_spectrum' %}">Upload Spectrum</a></li>
                 {% if user.is_authenticated %}
                     <li><a href="{% url 'logout' %}?next={{ request.path }}">Logout ({{ user.username }})</a></li>

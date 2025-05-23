@@ -26,6 +26,13 @@ class Spectrum(models.Model):
     )
     notes = models.TextField(blank=True, null=True)
 
+    frequency_data = models.JSONField(default=list)  # or jsonfield.JSONField() if using older Django
+    refractive_index_data = models.JSONField(default=list)
+    absorption_coefficient_data = models.JSONField(default=list)
+
+    refractive_index_data_available = models.BooleanField(default=False)
+    absorption_coefficient_data_available = models.BooleanField(default=False)
+
     class Meta:
         verbose_name_plural = "Spectra"
         ordering = ['-upload_timestamp']

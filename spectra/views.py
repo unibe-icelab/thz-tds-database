@@ -3,20 +3,22 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.generic import ListView, DetailView
 from .models import Spectrum, Material
-from .forms import SpectrumUploadForm, MaterialForm
-from . import dash_apps # noqa: F401 -- Ensures dash_apps.py is loaded
-import json # For parsing metadata if needed, or handling JSON in general
+from .forms import SpectrumUploadForm  # MaterialForm import removed as it's not used in these views
+import json
+
+from django.shortcuts import render, get_object_or_404
+from spectra.models import Spectrum
+
+def curveplot_view(request):
+    spectrum_id = request.GET.get('spectrum_id')
+    spectrum = get_object_or_404(Spectrum, id=spectrum_id) if spectrum_id else None
+    spectra = Spectrum.objects.all()
+    return render(request, 'spectra/curveplot.html', {'spectrum': spectrum, 'spectra': spectra})
 
 def home(request):
     materials = Material.objects.order_by('name')
     return render(request, 'spectra/home.html', {'materials': materials})
 
-
-class MaterialListView(ListView):
-    model = Material
-    template_name = 'spectra/material_list.html'
-    context_object_name = 'materials'
-    ordering = ['name']
 
 class SpectrumListView(ListView):
     model = Spectrum
@@ -24,15 +26,57 @@ class SpectrumListView(ListView):
     context_object_name = 'spectra'
     ordering = ['-upload_timestamp']
 
-class MaterialDetailView(DetailView):
-    model = Material
-    template_name = 'spectra/material_detail.html'
-    context_object_name = 'material'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['spectra'] = Spectrum.objects.filter(material=self.object).order_by('-upload_timestamp')
-        return context
+@login_required
+def upload_spectrum(request):
+    initial_form_data = {}
+    # Populate initial_form_data only for GET requests
+    if request.method == 'GET' and 'material_id' in request.GET:
+        try:
+            material_instance = Material.objects.get(pk=request.GET['material_id'])
+            initial_form_data['material_name'] = material_instance.name
+        except (Material.DoesNotExist, ValueError):
+            pass  # Silently ignore if material_id is invalid
+
+    if request.method == 'POST':
+        form = SpectrumUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            spectrum = form.save(commit=False)  # spectral_data is populated by form's save()
+            spectrum.uploaded_by = request.user
+
+            # Determine data availability flags
+            # Ensure these fields exist on your Spectrum model
+            spectrum.refractive_index_data_available = False
+            spectrum.absorption_coefficient_data_available = False
+
+            if spectrum.spectral_data and isinstance(spectrum.spectral_data, dict):
+                # Case 1: Processing (e.g. from a binary file in the form) directly provides specific keys
+                if 'refractive_index' in spectrum.spectral_data and spectrum.spectral_data.get('refractive_index'):
+                    spectrum.refractive_index_data_available = True
+
+                if 'absorption_coefficient' in spectrum.spectral_data and spectrum.spectral_data.get(
+                        'absorption_coefficient'):
+                    spectrum.absorption_coefficient_data_available = True
+
+                # Case 2: CSV file was uploaded, spectral_data might contain a generic 'intensity'.
+                # Use the 'data_type' field from the form to determine what 'intensity' represents.
+                # This assumes that if specific keys like 'refractive_index' are present, they take precedence.
+                elif 'intensity' in spectrum.spectral_data and spectrum.spectral_data.get('intensity'):
+                    # form.cleaned_data is available because form.is_valid() was true
+                    csv_data_type = form.cleaned_data.get('data_type')
+                    if csv_data_type == 'refractive_index':
+                        spectrum.refractive_index_data_available = True
+                    elif csv_data_type == 'absorption_coefficient':
+                        spectrum.absorption_coefficient_data_available = True
+
+            spectrum.save()  # This saves the spectrum instance along with the boolean flags
+            return redirect('spectra:spectrum_detail', pk=spectrum.pk)
+        # If form is not valid, it will fall through to the render statement,
+        # and the 'form' object containing errors will be passed to the template.
+    else:  # request.method == 'GET'
+        form = SpectrumUploadForm(initial=initial_form_data)
+
+    return render(request, 'spectra/upload_spectrum.html', {'form': form})
 
 
 class SpectrumDetailView(DetailView):
@@ -43,79 +87,38 @@ class SpectrumDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         spectrum = self.object
-
-        can_plot = False
-        initial_args = {}
-
-        # Check if spectral_data is valid for plotting
-        if spectrum.spectral_data and \
-           isinstance(spectrum.spectral_data.get('frequency'), list) and \
-           isinstance(spectrum.spectral_data.get('intensity'), list) and \
-           len(spectrum.spectral_data['frequency']) > 0 and \
-           len(spectrum.spectral_data['intensity']) == len(spectrum.spectral_data['frequency']):
-            can_plot = True
-            # Prepare arguments for the Dash app
-            initial_args = {
-                'frequency': spectrum.spectral_data.get('frequency'),
-                'intensity': spectrum.spectral_data.get('intensity'),
-                'frequency_unit': spectrum.metadata.get('frequency_unit', 'Frequency (a.u.)') if spectrum.metadata else 'Frequency (a.u.)',
-                'intensity_unit': spectrum.metadata.get('intensity_unit', 'Intensity (a.u.)') if spectrum.metadata else 'Intensity (a.u.)',
-                'material_name': spectrum.material.name if spectrum.material else 'Spectrum',
+        context = {
+            'spectrum': spectrum,
+            'material_name': spectrum.material.name,
+            'material_description': spectrum.material.description,
+            'spectrum_metadata': spectrum.metadata,  # Assuming it's a dict
+            'can_plot_ref_idx': bool(spectrum.refractive_index_data),
+            'can_plot_abs_coeff': bool(spectrum.absorption_coefficient_data),
+            'dash_app_name_ref_idx': 'RefractiveIndexPlot',
+            'dash_initial_arguments_ref_idx': {
+                'frequency': spectrum.frequency_data,
+                'refractive_index': spectrum.refractive_index_data,
+            },
+            'dash_app_name_abs_coeff': 'AbsorptionCoefficientPlot',
+            'dash_initial_arguments_abs_coeff': {
+                'frequency': spectrum.frequency_data,
+                'absorption_coefficient': spectrum.absorption_coefficient_data,
             }
+        }
+        if hasattr(spectrum, 'metadata') and spectrum.metadata:
+            if isinstance(spectrum.metadata, dict):
+                context['spectrum_metadata'] = spectrum.metadata
+            else:
+                try:
+                    loaded_metadata = json.loads(str(spectrum.metadata))
+                    if isinstance(loaded_metadata, dict):
+                        context['spectrum_metadata'] = loaded_metadata
+                    else:
+                        context['spectrum_metadata'] = {"data": loaded_metadata,
+                                                        "info": "Metadata loaded but not a dictionary."}
+                except (json.JSONDecodeError, TypeError):
+                    context['spectrum_metadata'] = {"error": "Metadata is not a valid JSON format or cannot be parsed."}
+        else:
+            context['spectrum_metadata'] = {"info": "No detailed metadata available."}
 
-        context['can_plot_spectrum'] = can_plot
-        context['dash_app_name'] = 'SimpleSpectrumPlotter' # Must match the name in dash_apps.py
-        context['dash_initial_arguments'] = initial_args
         return context
-
-
-@login_required
-def upload_spectrum(request):
-    initial_form_data = {}
-    if 'material_id' in request.GET:
-        try:
-            material_instance = Material.objects.get(pk=request.GET['material_id'])
-            initial_form_data['material'] = material_instance
-        except (Material.DoesNotExist, ValueError):
-            pass # Material not found, form will show empty material field
-
-    if request.method == 'POST':
-        form = SpectrumUploadForm(request.POST, request.FILES) # Pass request.FILES
-        if form.is_valid():
-            spectrum = form.save(commit=False)
-            spectrum.uploaded_by = request.user
-
-            # Handle metadata if it's expected to be JSON from a text field
-            # The form field 'metadata' is a CharField, so it needs to be parsed if it's JSON.
-            # However, the model's JSONField handles string-to-JSON conversion if the string is valid JSON.
-            # If you want to ensure it's valid JSON or provide default, you can do it here or in the form.
-            # For now, assuming the model's JSONField handles it or it's simple text.
-            # If metadata was meant to be structured from the form, the form needs to handle that.
-            # The current SpectrumUploadForm has metadata as a CharField, which is fine if you expect
-            # users to type valid JSON or if your model's JSONField handles simple strings.
-            # If you want to parse it as JSON here:
-            # try:
-            #     if form.cleaned_data.get('metadata'):
-            #         spectrum.metadata = json.loads(form.cleaned_data.get('metadata'))
-            # except json.JSONDecodeError:
-            #     form.add_error('metadata', 'Invalid JSON format.')
-            #     return render(request, 'spectra/upload_spectrum.html', {'form': form})
-
-            spectrum.save() # Save the instance to the database
-            # form.save_m2m() # If your form had m2m fields, call this after spectrum.save()
-            return redirect('spectra:spectrum_detail', pk=spectrum.pk)
-    else:
-        form = SpectrumUploadForm(initial=initial_form_data)
-    return render(request, 'spectra/upload_spectrum.html', {'form': form})
-
-
-@login_required
-def create_material(request):
-    if request.method == 'POST':
-        form = MaterialForm(request.POST)
-        if form.is_valid():
-            material = form.save()
-            return redirect('spectra:material_detail', pk=material.pk)
-    else:
-        form = MaterialForm()
-    return render(request, 'spectra/create_material.html', {'form': form})

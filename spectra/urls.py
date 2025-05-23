@@ -1,7 +1,6 @@
 # spectra/urls.py
 from django.urls import path
 from . import views
-from .dash_apps import curve_plot
 
 app_name = 'spectra'
 
@@ -15,8 +14,6 @@ urlpatterns = [
 
     # The path 'spectra/' for SpectrumListView is removed as it's now the app root.
     # path('spectra/', views.SpectrumListView.as_view(), name='spectrum_list'), # Old path
-    path('spectrum/<int:pk>/', views.SpectrumDetailView.as_view(), name='spectrum_detail'),
     path('<int:pk>/', views.spectrum_list_or_detail, name='spectrum_detail'),
-
     path('spectrum/upload/', views.upload_spectrum, name='upload_spectrum'),
 ]

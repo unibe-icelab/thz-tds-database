@@ -199,20 +199,3 @@ def upload_spectrum(request):
         form = SpectrumUploadForm(initial=initial_form_data)
 
     return render(request, 'spectra/upload_spectrum.html', {'form': form})
-
-
-class SpectrumDetailView(DetailView):
-    model = Spectrum
-    template_name = 'spectra/spectrum_detail.html'
-    context_object_name = 'spectrum'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        spectrum = self.object
-        freq = getattr(spectrum, 'frequency_data', [])
-        refidx = getattr(spectrum, 'refractive_index_data', [])
-        fig = go.Figure()
-        if freq and refidx:
-            fig.add_trace(go.Scatter(x=freq, y=refidx, mode='lines', name=spectrum.material.name))
-        context['plotly_fig'] = fig.to_json()
-        return context

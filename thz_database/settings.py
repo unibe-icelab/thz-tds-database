@@ -23,7 +23,6 @@ INSTALLED_APPS = [
 
     'spectra.apps.SpectraConfig',  # Your app
 
-    'django_plotly_dash.apps.DjangoPlotlyDashConfig',  # Dash integration
     # Add 'crispy_forms' if you decide to use it for form styling
 ]
 
@@ -79,17 +78,6 @@ DATABASES = {
 #     }
 # }
 
-# For django-plotly-dash
-X_FRAME_OPTIONS = 'SAMEORIGIN'  # Important for Dash iframes
-PLOTLY_COMPONENTS = [  # Add components if needed, often auto-detected
-    'dash.dcc',
-    'dash.html',
-    'dash',
-]
-PLOTLY_DASH = {
-    "serve_locally": True,
-}
-
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 # Add STATIC_ROOT for collectstatic in production
@@ -98,13 +86,9 @@ STATIC_URL = '/static/'
 # STATICFILES_DIRS = [BASE_DIR / "static"]
 
 
-# For django-plotly-dash to find assets
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    'django_plotly_dash.finders.DashAssetFinder',
-    'django_plotly_dash.finders.DashComponentFinder',
-    'django_plotly_dash.finders.DashAppDirectoryFinder',
 ]
 
 # Authentication

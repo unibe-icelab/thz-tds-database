@@ -15,14 +15,21 @@ import numpy as np  # Ensure NumPy is imported
 # spectra/forms.py
 from django import forms
 
+
 class SpectrumFilterForm(forms.Form):
     name = forms.CharField(label="Material Name", required=False)
     uploaded_by = forms.CharField(label="Uploaded By", required=False)
-    upload_date_from = forms.DateField(label="Uploaded After", required=False, widget=forms.DateInput(attrs={'type': 'date'}))
-    upload_date_to = forms.DateField(label="Uploaded Before", required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    upload_date_to = forms.DateField(
+        required=False,
+        label="Uploaded before",
+        widget=forms.DateInput(attrs={'type': 'date'})
+    )
+    upload_date_to = forms.DateField(label="Uploaded Before", required=False,
+                                     widget=forms.DateInput(attrs={'type': 'date'}))
     meta_key = forms.CharField(label="Metadata Key", required=False)
     meta_value = forms.CharField(label="Metadata Value", required=False)
-    
+
+
 def validate_material_name(value):
     # Only allow Unicode word characters and hyphens (no spaces or special chars)
     if not re.match(r'^[\w\-]+$', value, re.UNICODE):

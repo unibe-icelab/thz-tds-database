@@ -18,6 +18,9 @@ def spectrum_list_or_detail(request, pk=None):
     spectra = Spectrum.objects.select_related('material', 'uploaded_by').all()
     filter_form = SpectrumFilterForm(request.GET or None)
 
+    print("spectrum list")
+    print(f"{filter_form=}")
+
     if filter_form.is_valid():
         name = filter_form.cleaned_data.get('name')
         uploaded_by = filter_form.cleaned_data.get('uploaded_by')
@@ -99,6 +102,7 @@ def spectrum_list_or_detail(request, pk=None):
         fig_abscoeff = go.Figure()
         fig_abscoeff.update_layout(title="", **base_layout)
         plotly_fig_abscoeff = fig_abscoeff.to_json()
+    print(f"{filter_form=}")
 
     return render(request, 'spectra/spectrum_list.html', {
         'spectra': spectra,
@@ -109,32 +113,40 @@ def spectrum_list_or_detail(request, pk=None):
         'meta_data': meta_data,
     })
 
-def spectrum_plot_api(request, pk):
-    spectrum = Spectrum.objects.get(pk=pk)
-    # Example: replace with your actual data fields
-    freq = getattr(spectrum, 'frequency_data', [])
-    refidx = getattr(spectrum, 'refractive_index_data', [])
-    fig = go.Figure()
-    if freq and refidx:
-        fig.add_trace(go.Scatter(x=freq, y=refidx, mode='lines', name=spectrum.material.name))
-    return JsonResponse(fig.to_plotly_json())
-
-def curveplot_view(request):
-    spectrum_id = request.GET.get('spectrum_id')
-    spectrum = get_object_or_404(Spectrum, id=spectrum_id) if spectrum_id else None
-    spectra = Spectrum.objects.all()
-    return render(request, 'spectra/curveplot.html', {'spectrum': spectrum, 'spectra': spectra})
-
-def home(request):
-    materials = Material.objects.order_by('name')
-    return render(request, 'spectra/home.html', {'materials': materials})
-
 
 class SpectrumListView(ListView):
     model = Spectrum
     template_name = 'spectra/spectrum_list.html'
     context_object_name = 'spectra'
     ordering = ['-upload_timestamp']
+
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related('material', 'uploaded_by')
+        self.filter_form = SpectrumFilterForm(self.request.GET or None)
+        if self.filter_form.is_valid():
+            name = self.filter_form.cleaned_data.get('name')
+            uploaded_by = self.filter_form.cleaned_data.get('uploaded_by')
+            upload_date_from = self.filter_form.cleaned_data.get('upload_date_from')
+            upload_date_to = self.filter_form.cleaned_data.get('upload_date_to')
+            meta_key = self.filter_form.cleaned_data.get('meta_key')
+            meta_value = self.filter_form.cleaned_data.get('meta_value')
+
+            if name:
+                queryset = queryset.filter(material__name__icontains=name)
+            if uploaded_by:
+                queryset = queryset.filter(uploaded_by__username__icontains=uploaded_by)
+            if upload_date_from:
+                queryset = queryset.filter(upload_timestamp__date__gte=upload_date_from)
+            if upload_date_to:
+                queryset = queryset.filter(upload_timestamp__date__lte=upload_date_to)
+            if meta_key and meta_value:
+                queryset = queryset.filter(metadata__has_key=meta_key, metadata__contains={meta_key: meta_value})
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['filter_form'] = getattr(self, 'filter_form', SpectrumFilterForm())
+        return context
 
 
 @login_required

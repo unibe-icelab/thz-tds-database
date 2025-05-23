@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.generic import ListView, DetailView
 from .models import Spectrum, Material
-from .forms import SpectrumUploadForm  # MaterialForm import removed as it's not used in these views
+from .forms import SpectrumUploadForm, SpectrumFilterForm  # MaterialForm import removed as it's not used in these views
 import json
 
 from django.shortcuts import render, get_object_or_404
@@ -15,7 +15,28 @@ import plotly.graph_objs as go
 
 
 def spectrum_list_or_detail(request, pk=None):
-    spectra = Spectrum.objects.all().order_by('-upload_timestamp')
+    spectra = Spectrum.objects.select_related('material', 'uploaded_by').all()
+    filter_form = SpectrumFilterForm(request.GET or None)
+
+    if filter_form.is_valid():
+        name = filter_form.cleaned_data.get('name')
+        uploaded_by = filter_form.cleaned_data.get('uploaded_by')
+        upload_date_from = filter_form.cleaned_data.get('upload_date_from')
+        upload_date_to = filter_form.cleaned_data.get('upload_date_to')
+        meta_key = filter_form.cleaned_data.get('meta_key')
+        meta_value = filter_form.cleaned_data.get('meta_value')
+
+        if name:
+            spectra = spectra.filter(material__name__icontains=name)
+        if uploaded_by:
+            spectra = spectra.filter(uploaded_by__username__icontains=uploaded_by)
+        if upload_date_from:
+            spectra = spectra.filter(upload_timestamp__date__gte=upload_date_from)
+        if upload_date_to:
+            spectra = spectra.filter(upload_timestamp__date__lte=upload_date_to)
+        if meta_key and meta_value:
+            spectra = spectra.filter(metadata__has_key=meta_key, metadata__contains={meta_key: meta_value})
+
     spectrum = None
     plotly_fig_refidx = None
     plotly_fig_abscoeff = None
@@ -81,6 +102,7 @@ def spectrum_list_or_detail(request, pk=None):
 
     return render(request, 'spectra/spectrum_list.html', {
         'spectra': spectra,
+        'filter_form': filter_form,
         'selected_spectrum': spectrum,
         'plotly_fig_refidx': plotly_fig_refidx,
         'plotly_fig_abscoeff': plotly_fig_abscoeff,

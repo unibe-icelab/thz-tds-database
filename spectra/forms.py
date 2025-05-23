@@ -5,22 +5,43 @@ import json
 from django import forms
 from thzpy.timedomain import common_window
 from thzpy.transferfunctions import uniform_slab
+import re
+from django.core.exceptions import ValidationError
 
 from .models import Spectrum, Material
 import pydotthz
 import numpy as np  # Ensure NumPy is imported
+
+# spectra/forms.py
+from django import forms
+
+class SpectrumFilterForm(forms.Form):
+    name = forms.CharField(label="Material Name", required=False)
+    uploaded_by = forms.CharField(label="Uploaded By", required=False)
+    upload_date_from = forms.DateField(label="Uploaded After", required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    upload_date_to = forms.DateField(label="Uploaded Before", required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    meta_key = forms.CharField(label="Metadata Key", required=False)
+    meta_value = forms.CharField(label="Metadata Value", required=False)
+    
+def validate_material_name(value):
+    # Only allow Unicode word characters and hyphens (no spaces or special chars)
+    if not re.match(r'^[\w\-]+$', value, re.UNICODE):
+        raise ValidationError(
+            "Name must only contain letters, numbers, underscores, or hyphens (no spaces or special characters)."
+        )
 
 
 class SpectrumUploadForm(forms.ModelForm):
     material_name = forms.CharField(
         label="Material Name",
         max_length=100,
+        validators=[validate_material_name],
         help_text="Enter the name for the material. If it doesn't exist, it will be created."
     )
     binary_data_file = forms.FileField(
-        label="Combined Data and Metadata File (Recommended)",
+        label="dotTHz file",
         required=False,
-        help_text="Upload a single file (e.g., JCAMP-DX, HDF5) containing both spectral data and metadata. If this is provided, the CSV and Metadata text field below will be ignored. A specific parser for your chosen binary format needs to be implemented in the form's `_parse_binary_file` method."
+        help_text="Upload a single file (.thz) containing both spectral data and metadata."
     )
     data_file = forms.FileField(
         label="Spectral Data File (CSV - Alternative)",
@@ -81,7 +102,7 @@ class SpectrumUploadForm(forms.ModelForm):
 
                 spectral_data_dict = {
                     'frequency': list(buffer["frequency"]),
-                    'refractive_index': list( np.real(buffer["refractive_index"])),
+                    'refractive_index': list(np.real(buffer["refractive_index"])),
                     'absorption_coefficient': list(buffer["absorption_coefficient"])
                 }
                 metadata_dict = {"thickness_mm": thickness_float}
@@ -189,7 +210,8 @@ class SpectrumUploadForm(forms.ModelForm):
         instance.spectral_data = self.cleaned_data.get('parsed_spectral_data') or {}
         instance.frequency_data = self.cleaned_data.get('parsed_spectral_data').get("frequency") or []
         instance.refractive_index_data = self.cleaned_data.get('parsed_spectral_data').get("refractive_index") or []
-        instance.absorption_coefficient_data = self.cleaned_data.get('parsed_spectral_data').get("absorption_coefficient") or []
+        instance.absorption_coefficient_data = self.cleaned_data.get('parsed_spectral_data').get(
+            "absorption_coefficient") or []
         instance.metadata = self.cleaned_data.get('final_metadata') or {}
 
         if commit:

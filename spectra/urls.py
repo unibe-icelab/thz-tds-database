@@ -17,6 +17,8 @@ urlpatterns = [
     # path('spectra/', views.SpectrumListView.as_view(), name='spectrum_list'), # Old path
     path('spectrum/<int:pk>/', views.SpectrumDetailView.as_view(), name='spectrum_detail'),
     path('curveplot/', views.curveplot_view, name='curveplot'),
+    path('api/plot/<int:pk>/', views.spectrum_plot_api, name='spectrum_plot_api'),
+    path('<int:pk>/', views.spectrum_list_or_detail, name='spectrum_detail'),
 
     path('spectrum/upload/', views.upload_spectrum, name='upload_spectrum'),
 ]

@@ -8,6 +8,94 @@ import json
 
 from django.shortcuts import render, get_object_or_404
 from spectra.models import Spectrum
+from django.http import JsonResponse
+import plotly.graph_objs as go
+from .models import Spectrum
+import plotly.graph_objs as go
+
+
+def spectrum_list_or_detail(request, pk=None):
+    spectra = Spectrum.objects.all().order_by('-upload_timestamp')
+    spectrum = None
+    plotly_fig_refidx = None
+    plotly_fig_abscoeff = None
+    meta_data = None
+
+    # Style settings
+    axis_style = dict(showgrid=False, showline=True, linecolor='white', linewidth=2, zeroline=False)
+    base_layout = dict(
+        paper_bgcolor='#1a2d46',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='white'),
+        xaxis=axis_style,
+        yaxis=axis_style
+    )
+
+    if pk is not None:
+        spectrum = get_object_or_404(Spectrum, pk=pk)
+        freq = getattr(spectrum, 'frequency_data', [])
+        refidx = getattr(spectrum, 'refractive_index_data', [])
+        abscoeff = getattr(spectrum, 'absorption_coefficient_data', [])
+
+        # Refractive index plot
+        fig_refidx = go.Figure()
+        if freq and refidx:
+            fig_refidx.add_trace(go.Scatter(x=freq, y=refidx, mode='lines', name=spectrum.material.name))
+            fig_refidx.update_layout(
+                title="Refractive Index",
+                xaxis_title="Frequency",
+                yaxis_title="Refractive Index (n)",
+                **base_layout
+            )
+        else:
+            fig_refidx.update_layout(title="No refractive index data", **base_layout)
+        plotly_fig_refidx = fig_refidx.to_json()
+
+        # Absorption coefficient plot
+        fig_abscoeff = go.Figure()
+        if freq and abscoeff:
+            fig_abscoeff.add_trace(go.Scatter(x=freq, y=abscoeff, mode='lines', name=spectrum.material.name))
+            fig_abscoeff.update_layout(
+                title="Absorption Coefficient",
+                xaxis_title="Frequency",
+                yaxis_title="Absorption Coefficient",
+                **base_layout
+            )
+        else:
+            fig_abscoeff.update_layout(title="No absorption coefficient data", **base_layout)
+        plotly_fig_abscoeff = fig_abscoeff.to_json()
+
+        meta_data = {
+            'Material': spectrum.material.name if spectrum.material else '',
+            'Uploaded by': spectrum.uploaded_by.username if spectrum.uploaded_by else '',
+            'Upload time': spectrum.upload_timestamp,
+        }
+    else:
+        fig_refidx = go.Figure()
+        fig_refidx.update_layout(title="", **base_layout)
+        plotly_fig_refidx = fig_refidx.to_json()
+
+        fig_abscoeff = go.Figure()
+        fig_abscoeff.update_layout(title="", **base_layout)
+        plotly_fig_abscoeff = fig_abscoeff.to_json()
+
+    return render(request, 'spectra/spectrum_list.html', {
+        'spectra': spectra,
+        'selected_spectrum': spectrum,
+        'plotly_fig_refidx': plotly_fig_refidx,
+        'plotly_fig_abscoeff': plotly_fig_abscoeff,
+        'meta_data': meta_data,
+    })
+
+def spectrum_plot_api(request, pk):
+    spectrum = Spectrum.objects.get(pk=pk)
+    # Example: replace with your actual data fields
+    freq = getattr(spectrum, 'frequency_data', [])
+    refidx = getattr(spectrum, 'refractive_index_data', [])
+    fig = go.Figure()
+    if freq and refidx:
+        fig.add_trace(go.Scatter(x=freq, y=refidx, mode='lines', name=spectrum.material.name))
+    return JsonResponse(fig.to_plotly_json())
 
 def curveplot_view(request):
     spectrum_id = request.GET.get('spectrum_id')
@@ -87,38 +175,10 @@ class SpectrumDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         spectrum = self.object
-        context = {
-            'spectrum': spectrum,
-            'material_name': spectrum.material.name,
-            'material_description': spectrum.material.description,
-            'spectrum_metadata': spectrum.metadata,  # Assuming it's a dict
-            'can_plot_ref_idx': bool(spectrum.refractive_index_data),
-            'can_plot_abs_coeff': bool(spectrum.absorption_coefficient_data),
-            'dash_app_name_ref_idx': 'RefractiveIndexPlot',
-            'dash_initial_arguments_ref_idx': {
-                'frequency': spectrum.frequency_data,
-                'refractive_index': spectrum.refractive_index_data,
-            },
-            'dash_app_name_abs_coeff': 'AbsorptionCoefficientPlot',
-            'dash_initial_arguments_abs_coeff': {
-                'frequency': spectrum.frequency_data,
-                'absorption_coefficient': spectrum.absorption_coefficient_data,
-            }
-        }
-        if hasattr(spectrum, 'metadata') and spectrum.metadata:
-            if isinstance(spectrum.metadata, dict):
-                context['spectrum_metadata'] = spectrum.metadata
-            else:
-                try:
-                    loaded_metadata = json.loads(str(spectrum.metadata))
-                    if isinstance(loaded_metadata, dict):
-                        context['spectrum_metadata'] = loaded_metadata
-                    else:
-                        context['spectrum_metadata'] = {"data": loaded_metadata,
-                                                        "info": "Metadata loaded but not a dictionary."}
-                except (json.JSONDecodeError, TypeError):
-                    context['spectrum_metadata'] = {"error": "Metadata is not a valid JSON format or cannot be parsed."}
-        else:
-            context['spectrum_metadata'] = {"info": "No detailed metadata available."}
-
+        freq = getattr(spectrum, 'frequency_data', [])
+        refidx = getattr(spectrum, 'refractive_index_data', [])
+        fig = go.Figure()
+        if freq and refidx:
+            fig.add_trace(go.Scatter(x=freq, y=refidx, mode='lines', name=spectrum.material.name))
+        context['plotly_fig'] = fig.to_json()
         return context

@@ -1,24 +1,109 @@
 {% extends "spectra/base.html" %}
-
 {% block title %}All Spectra{% endblock %}
-
 {% block content %}
-<h1>All Spectra</h1>
-{% if spectra %}
-    <ul>
-        {% for spectrum in spectra %}
-            <li>
-                <a href="{% url 'spectra:spectrum_detail' pk=spectrum.pk %}">
-                    {{ spectrum.material.name }} - Uploaded: {{ spectrum.upload_timestamp|date:"Y-m-d H:i" }}
-                </a>
-                {% if spectrum.uploaded_by %}
-                    (by {{ spectrum.uploaded_by.username }})
-                {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p>No spectra found. <a href="{% url 'spectra:upload_spectrum' %}">Upload the first one?</a></p>
-{% endif %}
-<p><a href="{% url 'spectra:upload_spectrum' %}">Upload New Spectrum</a></p>
+<style>
+    .spectra-container {
+        display: flex;
+        height: 80vh;
+        background: #1a2d46;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .spectra-list-panel {
+        width: 300px;
+        background: #f4f6fa;
+        overflow-y: auto;
+        padding: 0;
+        margin: 0;
+        border-right: 1px solid #ccc;
+    }
+    .spectra-list-panel ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .spectra-list-panel li {
+        padding: 12px 16px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    .spectra-list-panel a {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    .spectra-list-panel a.selected {
+        background: #d0e2ff;
+        font-weight: bold;
+    }
+    .spectra-list-panel a:hover {
+        background: #d0e2ff;
+    }
+    .plot-panel {
+        flex: 1;
+        background: #1a2d46;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .meta-table {
+        margin-top: 2em;
+        color: #fff;
+        background: #223355;
+        border-radius: 6px;
+        padding: 1em;
+        width: 90%;
+    }
+    .meta-table th, .meta-table td {
+        padding: 0.3em 1em;
+        text-align: left;
+    }
+    .meta-table th {
+        font-weight: bold;
+        width: 30%;
+    }
+</style>
+<div class="spectra-container">
+    <div class="spectra-list-panel">
+        <div class="spectra-list-header">Spectra</div>
+        <ul>
+            {% for spectrum in spectra %}
+                <li>
+                    <a href="{% url 'spectra:spectrum_detail' spectrum.pk %}"
+                       class="{% if selected_spectrum and selected_spectrum.pk == spectrum.pk %}selected{% endif %}">
+                        <div class="spectrum-title">{{ spectrum.material.name }}</div>
+                        <div class="spectrum-meta">
+                            Uploaded: <strong>{{ spectrum.upload_timestamp|date:"Y-m-d H:i" }}</strong>
+                            {% if spectrum.uploaded_by %}
+                            <br>by <strong>{{ spectrum.uploaded_by.username }}</strong>
+                            {% endif %}
+                        </div>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="plot-panel" style="flex-direction:column;">
+        <div id="plotly-plot-refidx" style="width:90%;height:28vh;margin-bottom:2vh;"></div>
+        <div id="plotly-plot-abscoeff" style="width:90%;height:28vh;"></div>
+        {% if meta_data %}
+            <table class="meta-table">
+            <tbody>
+            {% for key, value in meta_data.items %}
+                <tr>
+                    <th>{{ key }}</th>
+                    <td>{{ value }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+  var fig_refidx = {{ plotly_fig_refidx|safe }};
+  var fig_abscoeff = {{ plotly_fig_abscoeff|safe }};
+  Plotly.newPlot('plotly-plot-refidx', fig_refidx.data, fig_refidx.layout);
+  Plotly.newPlot('plotly-plot-abscoeff', fig_abscoeff.data, fig_abscoeff.layout);
+</script>
 {% endblock %}

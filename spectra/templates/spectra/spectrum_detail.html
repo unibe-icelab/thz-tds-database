@@ -1,28 +1,11 @@
 {% extends "spectra/base.html" %}
-{% load plotly_dash %}
-
-{% block title %}Spectrum: {{ spectrum.name }}{% endblock %}
-
+{% block title %}Spectrum Detail{% endblock %}
 {% block content %}
-<h1>Spectrum Database}</h1>
-
-<div style="height: 100vh; width: 100%; margin: 0; padding: 0;">
-    {% plotly_app name="CurvePlot" ratio=1 %}
-</div>
-
-<div style="margin-top: 40px;">
-    <h2>Metadata</h2>
-    <p><strong>Spectrum Name:</strong> {{ spectrum.name }}</p>
-    <p><strong>Material:</strong> {{ material_name }}</p>
-    <p><em>{{ material_description }}</em></p>
-    <h3>All Metadata:</h3>
-    <ul>
-        {% for key, value in spectrum_metadata.items %}
-        <li><strong>{{ key|capfirst }}:</strong> {{ value }}</li>
-        {% endfor %}
-    </ul>
-</div>
-
-<hr>
-<p><a href="{% url 'spectra:spectrum_list' %}">Back to Spectra List</a></p>
+<h1>{{ spectrum.material.name }}</h1>
+<div id="plotly-plot" style="width:90%;height:70vh;"></div>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+  var fig = {{ plotly_fig|safe }};
+  Plotly.newPlot('plotly-plot', fig.data, fig.layout);
+</script>
 {% endblock %}

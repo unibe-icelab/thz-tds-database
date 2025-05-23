@@ -1,15 +1,15 @@
 # spectra/views.py
-from django.shortcuts import render, redirect, get_object_or_404
+import base64
+
+from django.forms import forms
+from django.shortcuts import  redirect
 from django.contrib.auth.decorators import login_required
-from django.views.generic import ListView, DetailView
-from .models import Spectrum, Material
-from .forms import SpectrumUploadForm, SpectrumFilterForm  # MaterialForm import removed as it's not used in these views
-import json
+from django.views.generic import ListView
+from .models import  Material
+from .forms import SpectrumUploadForm, SpectrumFilterForm
+import io
 
 from django.shortcuts import render, get_object_or_404
-from spectra.models import Spectrum
-from django.http import JsonResponse
-import plotly.graph_objs as go
 from .models import Spectrum
 import plotly.graph_objs as go
 
@@ -148,54 +148,136 @@ class SpectrumListView(ListView):
         context['filter_form'] = getattr(self, 'filter_form', SpectrumFilterForm())
         return context
 
-
 @login_required
 def upload_spectrum(request):
     initial_form_data = {}
-    # Populate initial_form_data only for GET requests
-    if request.method == 'GET' and 'material_id' in request.GET:
-        try:
-            material_instance = Material.objects.get(pk=request.GET['material_id'])
-            initial_form_data['material_name'] = material_instance.name
-        except (Material.DoesNotExist, ValueError):
-            pass  # Silently ignore if material_id is invalid
-
-    if request.method == 'POST':
-        form = SpectrumUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            spectrum = form.save(commit=False)  # spectral_data is populated by form's save()
-            spectrum.uploaded_by = request.user
-
-            # Determine data availability flags
-            # Ensure these fields exist on your Spectrum model
-            spectrum.refractive_index_data_available = False
-            spectrum.absorption_coefficient_data_available = False
-
-            if spectrum.spectral_data and isinstance(spectrum.spectral_data, dict):
-                # Case 1: Processing (e.g. from a binary file in the form) directly provides specific keys
-                if 'refractive_index' in spectrum.spectral_data and spectrum.spectral_data.get('refractive_index'):
-                    spectrum.refractive_index_data_available = True
-
-                if 'absorption_coefficient' in spectrum.spectral_data and spectrum.spectral_data.get(
-                        'absorption_coefficient'):
-                    spectrum.absorption_coefficient_data_available = True
-
-                # Case 2: CSV file was uploaded, spectral_data might contain a generic 'intensity'.
-                # Use the 'data_type' field from the form to determine what 'intensity' represents.
-                # This assumes that if specific keys like 'refractive_index' are present, they take precedence.
-                elif 'intensity' in spectrum.spectral_data and spectrum.spectral_data.get('intensity'):
-                    # form.cleaned_data is available because form.is_valid() was true
-                    csv_data_type = form.cleaned_data.get('data_type')
-                    if csv_data_type == 'refractive_index':
-                        spectrum.refractive_index_data_available = True
-                    elif csv_data_type == 'absorption_coefficient':
-                        spectrum.absorption_coefficient_data_available = True
-
-            spectrum.save()  # This saves the spectrum instance along with the boolean flags
-            return redirect('spectra:spectrum_detail', pk=spectrum.pk)
-        # If form is not valid, it will fall through to the render statement,
-        # and the 'form' object containing errors will be passed to the template.
-    else:  # request.method == 'GET'
+    if request.method == 'GET':
+        if 'material_id' in request.GET:
+            try:
+                material_instance = Material.objects.get(pk=request.GET['material_id'])
+                initial_form_data['material_name'] = material_instance.name
+            except (Material.DoesNotExist, ValueError):
+                pass
+        # Clear session state on a new GET request or initial page load
+        request.session.pop('upload_file_content_b64', None)
+        request.session.pop('upload_file_name', None)
+        request.session.pop('prompt_thickness', None)
         form = SpectrumUploadForm(initial=initial_form_data)
+        return render(request, 'spectra/upload_spectrum.html', {'form': form, 'prompt_thickness': False})
 
-    return render(request, 'spectra/upload_spectrum.html', {'form': form})
+    # POST request handling
+    # Instantiate form once with all POST data and FILES
+    form = SpectrumUploadForm(request.POST, request.FILES)
+    file_to_parse = None
+    # Determine if the template should prompt for thickness based on session state
+    prompt_thickness_context = request.session.get('prompt_thickness', False)
+
+    # Scenario 1: A new binary file is being uploaded in the current request
+    if 'binary_data_file' in request.FILES:
+        uploaded_file = request.FILES['binary_data_file']
+        binary_file_content_from_current_upload = uploaded_file.read()
+        # Reset file pointer so Django can handle the file if form.is_valid() is called later
+        # and the file needs to be processed by ModelForm's save.
+        uploaded_file.seek(0)
+
+        # Store file content in session for potential re-submission (e.g., if thickness is needed)
+        request.session['upload_file_content_b64'] = base64.b64encode(binary_file_content_from_current_upload).decode(
+            'ascii')
+        request.session['upload_file_name'] = uploaded_file.name
+        # If a new file is uploaded, reset the prompt_thickness flag in session and context
+        request.session['prompt_thickness'] = False
+        prompt_thickness_context = False
+        file_to_parse = io.BytesIO(binary_file_content_from_current_upload)
+
+    # Scenario 2: No new file in request.FILES, but one exists in session
+    # (e.g., user is re-submitting after being prompted for thickness)
+    elif request.session.get('upload_file_content_b64'):
+        file_bytes_b64 = request.session.get('upload_file_content_b64')
+        file_bytes = base64.b64decode(file_bytes_b64)
+        file_to_parse = io.BytesIO(file_bytes)
+        # prompt_thickness_context is already True if 'prompt_thickness' is true in session
+
+    # If we have binary file content (either from new upload or session)
+    if file_to_parse:
+        # Get sample_thickness value if user submitted it (e.g., after being prompted)
+        sample_thickness_val = request.POST.get('sample_thickness')
+        try:
+            # Call _parse_binary_file with the file content and optional thickness
+            parsed_result = form._parse_binary_file(
+                file_to_parse,
+                sample_thickness=sample_thickness_val
+            )
+
+            # If parsing is successful and returns the expected tuple
+            if isinstance(parsed_result, tuple) and len(parsed_result) == 2:
+                spectral_data_dict, metadata_dict = parsed_result
+                # Attach parsed data to the form instance
+                form.parsed_spectral_data_from_view = spectral_data_dict
+                form.final_metadata_from_view = metadata_dict
+
+                # Successfully parsed, clear session state related to this file upload
+                request.session.pop('upload_file_content_b64', None)
+                request.session.pop('upload_file_name', None)
+                request.session.pop('prompt_thickness', None)
+                prompt_thickness_context = False  # Reset prompt on success
+            # No 'else' here; if parsing fails in a way that _parse_binary_file handles by returning
+            # something else (which it currently doesn't, it raises errors), that would be an issue.
+
+        except forms.ValidationError as e:
+            # Add validation errors from _parse_binary_file to the form
+            form.add_error(None, e)
+            # Check if the error is specifically about missing thickness
+            if any("Metadata 'Sample Thickness (mm)' not found and no thickness provided" in msg for msg in e.messages):
+                request.session['prompt_thickness'] = True  # Set flag to prompt for thickness on next render
+                prompt_thickness_context = True
+            else:
+                # For other parsing errors (e.g. multiple datasets), clear session file to avoid reprocessing bad data
+                # and reset thickness prompt as it's not the issue.
+                request.session.pop('upload_file_content_b64', None)
+                request.session.pop('upload_file_name', None)
+                request.session.pop('prompt_thickness', None)
+                prompt_thickness_context = False
+
+        except Exception as e:  # Catch other unexpected errors during parsing
+            form.add_error(None, f"An unexpected error occurred during file processing: {e}")
+            # Clear session and reset prompt for unexpected errors too
+            request.session.pop('upload_file_content_b64', None)
+            request.session.pop('upload_file_name', None)
+            request.session.pop('prompt_thickness', None)
+            prompt_thickness_context = False
+
+    # After attempting to parse (if applicable), validate the whole form.
+    # form.is_valid() will:
+    # - Be true if binary parsing succeeded and data was attached, and other fields are valid.
+    # - Be false if binary parsing failed and form.add_error was called.
+    # - Run standard validation for other fields (material_name, notes).
+    # - Handle CSV validation if data_file was uploaded and no binary_file.
+    if form.is_valid():
+        spectrum_instance = form.save(commit=False)
+        spectrum_instance.uploaded_by = request.user  # Assign the logged-in user
+        spectrum_instance.save()
+        # form.save_m2m() # Call if your form has many-to-many fields to save
+
+        # Fully clear session state on successful save
+        request.session.pop('upload_file_content_b64', None)
+        request.session.pop('upload_file_name', None)
+        request.session.pop('prompt_thickness', None)
+        return redirect('spectra:spectrum_list')  # Or your desired success URL
+    else:
+        # Form is not valid, re-render with errors.
+        # prompt_thickness_context should be correctly set if thickness is the issue.
+        return render(request, 'spectra/upload_spectrum.html', {
+            'form': form,
+            'prompt_thickness': prompt_thickness_context
+        })
+
+# You would also need to ensure your 'spectra/upload_spectrum.html' template
+# can conditionally display an input field for 'sample_thickness' when 'prompt_thickness' is true.
+# Example snippet for template:
+# {% if prompt_thickness %}
+#   <p class="errornote">Sample thickness is required. Please provide it below.</p>
+#   {{ form.sample_thickness.label_tag }}
+#   {{ form.sample_thickness }}
+#   {{ form.sample_thickness.errors }}
+# {% endif %}
+# This requires 'sample_thickness' to be a field in your SpectrumUploadForm.

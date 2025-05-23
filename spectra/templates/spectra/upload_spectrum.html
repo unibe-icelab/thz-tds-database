@@ -31,7 +31,8 @@
 
     .upload-card input[type="text"],
     .upload-card input[type="file"],
-    .upload-card select {
+    .upload-card select,
+    .upload-card textarea { /* Added textarea for consistency */
         width: 100%;
         font-size: 1.1em;
         padding: 12px 14px;
@@ -76,11 +77,18 @@
         border: none;
     }
 
-    .upload-card .invalid-feedback {
+    .upload-card .invalid-feedback,
+    .upload-card ul.invalid-feedback li { /* Target list items directly for non-field errors */
         color: #c0392b;
         font-size: 0.98em;
         margin-top: 2px;
     }
+     .upload-card ul.invalid-feedback {
+        list-style-type: none; /* Remove bullets from non-field errors */
+        padding-left: 0;
+        margin-bottom: 1rem; /* Add some space below non-field errors */
+    }
+
 
     .upload-card .form-text {
         color: #5a6b8a;
@@ -94,7 +102,7 @@
     {% if form.non_field_errors %}
     <ul class="invalid-feedback d-block">
         {% for error in form.non_field_errors %}
-        {{ error }}
+        <li>{{ error }}</li>
         {% endfor %}
     </ul>
     {% endif %}
@@ -116,37 +124,26 @@
         <p class="text-muted" style="margin-bottom:18px;"><small>Upload a single file containing both the spectral data
             and its associated metadata.</small></p>
         <div class="form-group mb-3">
-            <label for="{{ form.binary_data_file.id_for_label }}" class="form-label">{{ form.binary_data_file.label
-                }}</label>
+            <label for="{{ form.binary_data_file.id_for_label }}" class="form-label">{{ form.binary_data_file.label }}</label>
             {{ form.binary_data_file }}
             {% for error in form.binary_data_file.errors %}
             <div class="invalid-feedback d-block">{{ error }}</div>
             {% endfor %}
-            <small class="form-text text-muted">{{ form.binary_data_file.help_text|safe }}</small>
         </div>
 
-        {% if form.sample_choice %}
-        <div class="form-group mb-3">
-            <label for="{{ form.sample_choice.id_for_label }}" class="form-label">{{ form.sample_choice.label }}</label>
-            {{ form.sample_choice }}
-            {% for error in form.sample_choice.errors %}
-            <div class="invalid-feedback d-block">{{ error }}</div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        {% if form.ref_choice %}
-        <div class="form-group mb-3">
-            <label for="{{ form.ref_choice.id_for_label }}" class="form-label">{{ form.ref_choice.label }}</label>
-            {{ form.ref_choice }}
-            {% for error in form.ref_choice.errors %}
+        {% if prompt_thickness %}
+        <div class="form-group mb-3 alert alert-warning"> {# Added alert class for styling #}
+            <p class="errornote">Sample thickness was not found in the file's metadata. Please provide it in millimeters:</p>
+            <label for="{{ form.sample_thickness.id_for_label }}" class="form-label">{{ form.sample_thickness.label }}</label>
+            {{ form.sample_thickness }}
+            {% for error in form.sample_thickness.errors %}
             <div class="invalid-feedback d-block">{{ error }}</div>
             {% endfor %}
         </div>
         {% endif %}
 
         <button type="submit" class="btn btn-primary mt-3">Upload Spectrum</button>
-        <a href="{% url 'spectra:spectrum_list' %}" class="btn btn-secondary ms-2">Cancel</a>
+        <a href="{% url 'spectra:spectrum_list' %}" class="btn btn-secondary mt-3 ms-2">Cancel</a>
     </form>
 </div>
 {% endblock %}

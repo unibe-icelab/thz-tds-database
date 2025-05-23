@@ -3,44 +3,45 @@
 {% block title %}Login - THz Database{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h2>Login</h2>
-            </div>
-            <div class="card-body">
-                {% if form.errors %}
-                    <div class="alert alert-danger">
-                        Your username and password didn't match. Please try again.
-                    </div>
-                {% endif %}
-
-                {% if next %}
-                    {% if user.is_authenticated %}
-                    <p class="alert alert-warning">Your account doesn't have access to this page. To proceed,
-                    please login with an account that has access.</p>
-                    {% else %}
-                    <p class="alert alert-info">Please login to see this page.</p>
-                    {% endif %}
-                {% endif %}
-
-                <form method="post" action="{% url 'login' %}">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="{{ form.username.id_for_label }}">Username:</label>
-                        {{ form.username }}
-                    </div>
-                    <div class="form-group">
-                        <label for="{{ form.password.id_for_label }}">Password:</label>
-                        {{ form.password }}
-                    </div>
-                    <button type="submit" class="btn btn-primary">Login</button>
-                    <input type="hidden" name="next" value="{{ next }}">
-                </form>
-                <p class="mt-3"><a href="{% url 'password_reset' %}">Lost password?</a></p>
-            </div>
+<div class="form-container">
+    <h2>Login</h2>
+    {% if form.errors %}
+        <div class="messages">
+            <li class="error">
+                Your username and password didn't match. Please try again.
+            </li>
         </div>
-    </div>
+    {% endif %}
+
+    {% if next %}
+        {% if user.is_authenticated %}
+        <div class="messages">
+            <li class="warning">
+                Your account doesn't have access to this page. To proceed, please login with an account that has access.
+            </li>
+        </div>
+        {% else %}
+        <div class="messages">
+            <li class="info">
+                Please login to see this page.
+            </li>
+        </div>
+        {% endif %}
+    {% endif %}
+
+    <form method="post" class="login-form" action="{% url 'login' %}">
+        {% csrf_token %}
+        <div>
+            <label for="{{ form.username.id_for_label }}">Username:</label>
+            {{ form.username }}
+        </div>
+        <div>
+            <label for="{{ form.password.id_for_label }}">Password:</label>
+            {{ form.password }}
+        </div>
+        <button type="submit">Login</button>
+        <input type="hidden" name="next" value="{{ next }}">
+    </form>
+    <p style="margin-top: 18px;"><a href="{% url 'password_reset' %}">Lost password?</a></p>
 </div>
 {% endblock %}

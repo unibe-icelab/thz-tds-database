@@ -1,6 +1,4 @@
 # spectra/forms.py
-import csv
-import io
 import json
 from django import forms
 from thzpy.timedomain import common_window

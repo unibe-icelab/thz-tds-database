@@ -1,5 +1,9 @@
 {% extends "spectra/base.html" %}
+{% load static %} {# Assuming you might need static for other things, good practice #}
+{% load spectra_extras %} {# Load custom template tags #}
+
 {% block title %}All Spectra{% endblock %}
+
 {% block content %}
 <style>
     .spectra-container {
@@ -86,12 +90,13 @@
         justify-content: flex-start;
         overflow-y: auto;
         min-height: 0;
+        padding-bottom: 2em; /* Add some padding at the bottom */
     }
 
     #plotly-plot-refidx, #plotly-plot-abscoeff {
         width: 90%;
-        min-height: 200px;
-        max-height: 32vh;
+        min-height: 300px;
+        max-height: 64vh;
         margin-bottom: 2vh;
     }
 
@@ -111,7 +116,7 @@
         .plot-panel {
             width: 100%;
             min-height: 0;
-            max-height: 60vh;
+            max-height: 60vh; /* Adjusted for potentially more metadata */
             overflow-y: auto;
         }
 
@@ -129,18 +134,42 @@
         border-radius: 6px;
         padding: 1em;
         width: 90%;
+        border-collapse: collapse; /* Ensures padding and borders work well */
     }
 
     .meta-table th, .meta-table td {
-        padding: 0.3em 1em;
+        padding: 0.5em 1em; /* Increased padding slightly */
         text-align: left;
+        border-bottom: 1px solid #2f4566; /* Subtle separator for rows */
     }
+    .meta-table tr:last-child th,
+    .meta-table tr:last-child td {
+        border-bottom: none; /* No border for the last row */
+    }
+
 
     .meta-table th {
         font-weight: bold;
         width: 30%;
         color: #1a2d46;
+        vertical-align: top; /* Align top for potentially multi-line values */
     }
+
+    .meta-table td {
+        vertical-align: top; /* Align top */
+        word-break: break-word; /* Break long strings */
+    }
+    .meta-table td pre {
+        background-color: #1a2d46; /* Darker background for preformatted text */
+        color: #e0e4ea;
+        padding: 0.5em;
+        border-radius: 4px;
+        margin: 0;
+        white-space: pre-wrap; /* Wrap long lines in pre */
+        word-break: break-all; /* Break long words/strings in pre */
+        font-size: 0.9em;
+    }
+
 
     .filter-dropdown {
         margin-bottom: 18px;
@@ -215,8 +244,8 @@
             {{ filter_form.uploaded_by }}
         </div>
         <div>
-            <label for="{{ filter_form.upload_date_to.id_for_label }}">{{ filter_form.upload_date_to.label }}</label>
-            {{ filter_form.upload_date_to }}
+            <label for="{{ filter_form.upload_date_from_or_exact.id_for_label }}">{{ filter_form.upload_date_from_or_exact.label }}</label>
+            {{ filter_form.upload_date_from_or_exact }}
         </div>
         <div>
             <label for="{{ filter_form.upload_date_to.id_for_label }}">{{ filter_form.upload_date_to.label }}</label>
@@ -240,55 +269,88 @@
     <div class="spectra-list-panel">
         <div class="spectra-list-header">Spectra</div>
         <ul>
-            {% for spectrum in spectra %}
+            {% for spectrum_item in spectra %} {# Renamed to avoid conflict if selected_spectrum is also named spectrum #}
             <li>
-                <a href="{% url 'spectra:spectrum_detail' spectrum.pk %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
-                   class="{% if selected_spectrum and selected_spectrum.pk == spectrum.pk %}selected{% endif %}">
-                    <div class="spectrum-title">{{ spectrum.material.name }}</div>
+                <a href="{% url 'spectra:spectrum_detail' spectrum_item.pk %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
+                   class="{% if selected_spectrum and selected_spectrum.pk == spectrum_item.pk %}selected{% endif %}">
+                    <div class="spectrum-title">{{ spectrum_item.material.name }}</div>
                     <div class="spectrum-meta">
-                        Uploaded: <strong>{{ spectrum.upload_timestamp|date:"Y-m-d H:i" }}</strong>
-                        {% if spectrum.uploaded_by %}
-                        <br>by <strong>{{ spectrum.uploaded_by.username }}</strong>
+                        Uploaded: <strong>{{ spectrum_item.upload_timestamp|date:"Y-m-d H:i" }}</strong>
+                        {% if spectrum_item.uploaded_by %}
+                        <br>by <strong>{{ spectrum_item.uploaded_by.username }}</strong>
                         {% endif %}
                     </div>
                 </a>
             </li>
+            {% empty %}
+             <li><div style="padding: 16px 18px;">No spectra found.</div></li>
             {% endfor %}
         </ul>
     </div>
     <div class="plot-panel" style="flex-direction:column;">
         <div id="plotly-plot-refidx" style="width:90%;height:28vh;margin-bottom:2vh;"></div>
         <div id="plotly-plot-abscoeff" style="width:90%;height:28vh;"></div>
-        {% if meta_data %}
+
+        {% if selected_spectrum and selected_spectrum.metadata %} {# Use selected_spectrum.metadata directly #}
         <table class="meta-table">
+            <thead>
+                 <tr>
+                    <th colspan="2" style="text-align:center; font-size: 1.1em; padding-bottom: 0.8em;">Metadata for {{ selected_spectrum.material.name }}</th>
+                </tr>
+            </thead>
             <tbody>
-            {% for key, value in meta_data.items %}
+            {% for key, value in selected_spectrum.metadata.items %}
             <tr>
-                <th>{{ key }}</th>
-                <td>{{ value }}</td>
+                <th>{{ key|title }}</th>
+                <td>
+                    {% if value|is_list or value|is_dict %}
+                        <pre>{{ value|pprint }}</pre>
+                    {% elif value is None or value == "" %}
+                        <span style="color: #777;">N/A</span>
+                    {% else %}
+                        {{ value }}
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
             </tbody>
         </table>
+        {% elif selected_spectrum %}
+         <div class="meta-table" style="text-align:center; padding: 1em;">No additional metadata available for this spectrum.</div>
         {% endif %}
     </div>
 </div>
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
     window.addEventListener('resize', function () {
-        Plotly.Plots.resize('plotly-plot-refidx');
-        Plotly.Plots.resize('plotly-plot-abscoeff');
+        if (document.getElementById('plotly-plot-refidx')) {
+            Plotly.Plots.resize('plotly-plot-refidx');
+        }
+        if (document.getElementById('plotly-plot-abscoeff')) {
+            Plotly.Plots.resize('plotly-plot-abscoeff');
+        }
     });
-    var fig_refidx = {{ plotly_fig_refidx|safe }};
-    var fig_abscoeff = {{ plotly_fig_abscoeff|safe }};
-    Plotly.newPlot('plotly-plot-refidx', fig_refidx.data, fig_refidx.layout);
-    Plotly.newPlot('plotly-plot-abscoeff', fig_abscoeff.data, fig_abscoeff.layout);
-    // Scroll selected entry into view
-    document.addEventListener('DOMContentLoaded', function() {
-    var selected = document.querySelector('.spectra-list-panel a.selected');
-    if (selected) {
-      selected.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    var fig_refidx_json = {{ plotly_fig_refidx|safe|default:'null' }};
+    var fig_abscoeff_json = {{ plotly_fig_abscoeff|safe|default:'null' }};
+
+    if (fig_refidx_json && fig_refidx_json.data && fig_refidx_json.layout) {
+        Plotly.newPlot('plotly-plot-refidx', fig_refidx_json.data, fig_refidx_json.layout, {responsive: true});
+    } else if (document.getElementById('plotly-plot-refidx')) {
+        document.getElementById('plotly-plot-refidx').innerHTML = '<p style=\"color:white;text-align:center;padding-top:20%;\">Refractive index data not available or not selected.</p>';
     }
+
+    if (fig_abscoeff_json && fig_abscoeff_json.data && fig_abscoeff_json.layout) {
+        Plotly.newPlot('plotly-plot-abscoeff', fig_abscoeff_json.data, fig_abscoeff_json.layout, {responsive: true});
+    } else if (document.getElementById('plotly-plot-abscoeff')) {
+         document.getElementById('plotly-plot-abscoeff').innerHTML = '<p style=\"color:white;text-align:center;padding-top:20%;\">Absorption coefficient data not available or not selected.</p>';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var selected = document.querySelector('.spectra-list-panel a.selected');
+        if (selected) {
+          selected.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+        }
     });
 </script>
 {% endblock %}

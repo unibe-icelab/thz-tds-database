@@ -81,9 +81,7 @@ DATABASES = {
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 # Add STATIC_ROOT for collectstatic in production
-# STATIC_ROOT = BASE_DIR / 'staticfiles'
-# Add STATICFILES_DIRS if you have project-level static files not in an app
-# STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Add STATICFILES_DIRS to tell Django where to find project-level static files
 STATICFILES_DIRS = [

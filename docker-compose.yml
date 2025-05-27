@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: gunicorn --bind 0.0.0.0:9000 thz_database.wsgi:application
+    volumes:
+      - .:/app # Mounts the current directory to /app in the container for development
+      # You might want to add other volumes for persistent data, e.g.:
+      # - static_volume:/app/staticfiles
+      # - media_volume:/app/mediafiles
+    ports:
+      - "9000:9000"
+    environment:
+      - SECRET_KEY=your_secret_key_here # Change this in production
+      - DEBUG=1 # Set to 0 in production
+      # Add other environment variables your Django app needs, e.g., database URL
+      # - DATABASE_URL=mysql://user:password@host:port/dbname
+    # If you add a database service, you might add:
+    # depends_on:
+    #   - db
+
+# Optional: Define volumes if you uncommented them above
+# volumes:
+#   static_volume:
+#   media_volume:
+
+# Example for a database service (e.g., MySQL, uncomment and configure if needed)
+#  db:
+#    image: mysql:8.0
+#    volumes:
+#      - mysql_data:/var/lib/mysql
+#    environment:
+#      - MYSQL_ROOT_PASSWORD=your_mysql_root_password
+#      - MYSQL_DATABASE=your_db_name
+#      - MYSQL_USER=your_db_user
+#      - MYSQL_PASSWORD=your_db_password
+#    ports:
+#      - "3306:3306"
+
+# volumes:
+#   mysql_data:

@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}THz Spectra Database{% endblock %}</title>
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    <!-- Add Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         body {
             font-family: sans-serif;
@@ -35,6 +37,12 @@
             align-items: center; /* Added for alignment */
             margin-right: 15px;
         }
+
+        /* Remove margin-right for the last item if it's the GitHub icon pushed to the right */
+        nav ul li:last-child {
+            margin-right: 0;
+        }
+
 
         nav a {
             text-decoration: none;
@@ -182,6 +190,7 @@
             margin-bottom: 10px;
             max-width: 500px; /* Or adjust as needed */
         }
+
         .token-container input[readonly] {
             flex-grow: 1;
             margin-right: 8px;
@@ -191,26 +200,31 @@
             background-color: #f0f0f0;
             font-family: monospace;
         }
+
         .token-container button {
             padding: 6px 12px;
             border: 1px solid #ccc;
             border-radius: 4px;
             cursor: pointer;
         }
+
         .token-container button.secondary { /* Example for a secondary button style */
             background-color: #6c757d;
             color: white;
             border-color: #6c757d;
         }
+
         .token-container button.secondary:hover {
             background-color: #5a6268;
             border-color: #545b62;
         }
+
         .token-container button.outline { /* Example for an outline button style */
             background-color: transparent;
             color: #007bff;
             border: 1px solid #007bff;
         }
+
         .token-container button.outline:hover {
             background-color: #007bff;
             color: white;
@@ -245,6 +259,14 @@
             </li>
             {% endif %}
             <li><a href="{% url 'admin:index' %}">Admin Login</a></li>
+            <li style="margin-left: auto;">
+                <a href="https://github.com/unibe-icelab/thz-tds-databse"
+                   role="button"
+                   title="View source on GitHub"
+                   aria-label="View source on GitHub">
+                    <i class="fab fa-github fa-lg"></i>
+                </a>
+            </li>
         </ul>
     </nav>
 </header>
@@ -263,7 +285,7 @@
 </main>
 
 <footer>
-    <center class="container">&copy; {% now "Y" %} Space Research and Planetary Sciences, University of Bern </center>
+    <center class="container">&copy; {% now "Y" %} Space Research and Planetary Sciences, University of Bern</center>
 </footer>
 {% block scripts_extra %}{% endblock %}
 </body>

@@ -1,15 +1,15 @@
 # thz_database/settings.py (relevant parts)
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'your-very-long-and-random-secret-key-here' #
+SECRET_KEY = 'your-very-long-and-random-secret-key-here'  #
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True # Set to False in production
+DEBUG = True  # Set to False in production
 
 ALLOWED_HOSTS = ["*"]
-
 
 # Application definition
 
@@ -48,9 +48,9 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
-                'django.template.context_processors.request', # Required for admin nav sidebar and other things
-                'django.contrib.auth.context_processors.auth', # Required for admin
-                'django.contrib.messages.context_processors.messages', # Required for admin
+                'django.template.context_processors.request',  # Required for admin nav sidebar and other things
+                'django.contrib.auth.context_processors.auth',  # Required for admin
+                'django.contrib.messages.context_processors.messages',  # Required for admin
             ],
         },
     },
@@ -78,10 +78,8 @@ DATABASES = {
 #     }
 # }
 
-# Static files (CSS, JavaScript, Images)
-STATIC_URL = '/static/'
-# Add STATIC_ROOT for collectstatic in production
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # Add STATICFILES_DIRS to tell Django where to find project-level static files
 STATICFILES_DIRS = [

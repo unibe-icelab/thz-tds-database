@@ -4,6 +4,6 @@ plotly~=6.1.1
 gunicorn
 mysqlclient
 numpy~=2.2.6
-thzpy~=0.0.4
+git+https://github.com/dotTHzTAG/thzpy.git@add-adapted-blackman-window#egg=thzpy
 djangorestframework~=3.16.0
 channels~=4.2.2

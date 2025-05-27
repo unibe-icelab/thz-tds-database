@@ -29,6 +29,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code into the container
 COPY . /app/
 
+# Apply database migrations
+RUN python manage.py migrate
+
+RUN mkdir -p /app/staticfiles && python manage.py collectstatic --noinput
+
+# Collect static files
+RUN python manage.py collectstatic --noinput
+
 # Expose the port Gunicorn will run on
 EXPOSE 9000
 

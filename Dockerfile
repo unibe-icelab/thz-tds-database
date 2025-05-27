@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libhdf5-dev \
     default-libmysqlclient-dev \
     gcc \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -28,8 +29,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . /app/
 
 # Expose the port Gunicorn will run on
-EXPOSE 8000
+EXPOSE 9000
 
 # Define the command to run your application using Gunicorn
 # Ensure 'thz_database.wsgi:application' matches your project structure
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "thz_database.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:9000", "thz_database.wsgi:application"]

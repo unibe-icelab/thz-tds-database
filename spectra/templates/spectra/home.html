@@ -3,13 +3,144 @@
 {% block title %}Home - THz Spectra App{% endblock %}
 
 {% block content %}
-<section class="form-container">
+<style>
+    .content-box {
+        max-width: 680px; /* Wider for home page content */
+        margin: 48px auto 0 auto;
+        background: #f4f6fa;
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(26, 45, 70, 0.08);
+        padding: 36px 36px 28px 36px;
+        border: 1.5px solid #e0e4ea;
+    }
+
+    .content-box h2 { /* Main heading for the box */
+        font-size: 2em;
+        color: #1a2d46;
+        margin-bottom: 18px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .content-box h4 { /* Sub-headings */
+        font-size: 1.3em; /* Slightly larger for section titles */
+        color: #1a2d46;
+        margin-top: 28px; /* More space above section titles */
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+
+    .content-box label { /* Though not many labels here, good for consistency */
+        font-size: 1.1em;
+        color: #1a2d46;
+        font-weight: 600;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .content-box input[type="text"] { /* For API token input */
+        width: 100%;
+        font-size: 1.1em;
+        padding: 12px 14px;
+        border-radius: 7px;
+        border: 1.5px solid #bfc8da;
+        margin-bottom: 10px;
+        background: #fff;
+        color: #1a2d46;
+        box-sizing: border-box;
+    }
+
+    .content-box button,
+    .content-box a.btn { /* General button style */
+        font-size: 1.1em;
+        padding: 12px 28px;
+        border-radius: 7px;
+        margin-top: 10px;
+        margin-right: 8px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+        cursor: pointer;
+        border: 1.5px solid transparent;
+    }
+
+    .content-box .btn-primary {
+        background: #1a2d46;
+        border-color: #1a2d46;
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(26, 45, 70, 0.10);
+        transition: background 0.2s, border-color 0.2s;
+    }
+
+    .content-box .btn-primary:hover {
+        background: #223355;
+        border-color: #223355;
+    }
+
+    .content-box .btn-secondary {
+        background: #e9eef6;
+        color: #1a2d46;
+        border-color: #e0e4ea;
+        transition: background 0.2s, border-color 0.2s;
+    }
+
+    .content-box .btn-secondary:hover {
+        background: #dce3ed;
+        border-color: #bfc8da;
+    }
+
+    .content-box .token-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .content-box .token-container input[type="text"] {
+        flex-grow: 1;
+        margin-right: 8px;
+        margin-bottom: 0; /* Override general margin */
+    }
+
+    .content-box .token-container button {
+        margin-top: 0; /* Align with input */
+        padding: 12px 14px; /* Slightly smaller padding for these utility buttons */
+    }
+
+    .content-box p { /* Adjust paragraph spacing if needed */
+        margin-bottom: 1rem;
+        line-height: 1.6;
+    }
+
+    .content-box p > button,
+    .content-box p > a.btn { /* Buttons directly in paragraphs */
+        margin-top: 5px;
+        margin-bottom: 10px; /* Space after button in p */
+    }
+
+    .content-box hr {
+        border: 0;
+        height: 1.5px;
+        background-color: #e0e4ea;
+        margin-top: 25px;
+        margin-bottom: 25px;
+    }
+
+    .content-box small { /* Style for help text */
+        color: #5a6b8a;
+        font-size: 0.98em;
+    }
+</style>
+
+<div class="content-box">
     <h2>Welcome to the THz Spectra Database, {{ user.username|default:'Guest' }}!</h2>
 
-    {% if user.is_authenticated %} {# Changed from user_is_authenticated #}
-    <p>You can upload, view and download THz spectra on the web or using your api key below.</p>
+    {% if user.is_authenticated %}
+    <p>You can upload, view and download THz spectra on the web or using your API key below.</p>
     <p>Pack your Measurement as a .thz file with a "Sample" time trace measurement, "Reference" time trace measurement
         and the corresponding meta-data (at least "Sample Thickness (mm)" ) and upload it using the web interface. </p>
+
     <h4>Your API Token:</h4>
     {% if api_key %}
     <div class="token-container">
@@ -17,7 +148,14 @@
         <button onclick="copyTokenToClipboard()" class="secondary" style="margin-right: 5px;">Copy</button>
         <form action="{% url 'spectra:regenerate_token' %}" method="post" style="display: inline;">
             {% csrf_token %}
-            <button type="submit" class="contrast outline">Generate New Token</button>
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary" title="Generate New Token" aria-label="Generate New Token">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"
+                     style="vertical-align: middle;">
+                    <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                </svg>
+            </button>
         </form>
     </div>
     <small id="copyStatus" style="display: none; color: green; margin-left: 5px;">Copied!</small>
@@ -32,21 +170,35 @@
     <hr>
 
     <h4>Quick Actions:</h4>
-    <p><a href="{% url 'spectra:spectrum_list' %}" role="button" class="primary">View All Spectra</a></p>
+    <p>
+        <button type="button" class="btn btn-primary"
+                onclick="window.location.href='{% url 'spectra:spectrum_list' %}'">View All Spectra
+        </button>
+    </p>
     {% if user.is_authenticated %}
-    <p><a href="{% url 'spectra:upload_spectrum' %}" role="button" class="secondary">Upload New Spectrum</a></p>
+    <p>
+        <button type="button" class="btn btn-primary"
+                onclick="window.location.href='{% url 'spectra:upload_spectrum' %}'">Upload New Spectrum
+        </button>
+    </p>
+    <p>
+        <button type="button" class="btn btn-primary"
+                onclick="window.location.href='{% url 'spectra:password_change' %}'">Change Password
+        </button>
+    </p>
     {% endif %}
-</section>
+</div>
 {% endblock %}
 
 {% block scripts_extra %}
+{{ block.super }} {# Keep existing scripts if any #}
 <script>
     function copyTokenToClipboard() {
         var tokenInput = document.getElementById("apiToken");
-        if (!tokenInput) return; // Element might not exist if no token
+        if (!tokenInput) return;
 
         tokenInput.select();
-        tokenInput.setSelectionRange(0, 99999); // For mobile devices
+        tokenInput.setSelectionRange(0, 99999);
 
         try {
             var successful = document.execCommand('copy');
@@ -72,7 +224,6 @@
             }, 2000);
         }
 
-        // Deselect the text
         if (window.getSelection) {
             window.getSelection().removeAllRanges();
         } else if (document.selection) {

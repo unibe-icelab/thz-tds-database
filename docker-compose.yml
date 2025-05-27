@@ -3,7 +3,7 @@ version: '3.8'
 services:
   web:
     build: .
-    container_name: thz_database_django
+    container_name: thz_database_gunicorn
     command: gunicorn --bind 0.0.0.0:9000 thz_database.wsgi:application
     volumes:
       - .:/app # Mounts the current directory to /app in the container for development

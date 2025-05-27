@@ -3,6 +3,7 @@ version: '3.8'
 services:
   web:
     build: .
+    container_name: thz_database_django
     command: gunicorn --bind 0.0.0.0:9000 thz_database.wsgi:application
     volumes:
       - .:/app # Mounts the current directory to /app in the container for development
@@ -23,7 +24,7 @@ services:
 
   nginx:
     image: nginx:latest
-    container_name: django_nginx
+    container_name: thz_database_nginx
     ports:
       - "6080:80"     # HTTP → maps host:6080 to container:80
       - "6443:443"    # HTTPS → maps

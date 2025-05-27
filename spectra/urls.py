@@ -10,6 +10,7 @@ urlpatterns = [
     path('spectra', views.SpectrumListView.as_view(), name='spectrum_list'),
 
     path('<int:pk>/', views.spectrum_list_or_detail, name='spectrum_detail'),
+    path('<int:pk>/download/', views.download_spectrum_file, name='download_spectrum_file'),
     path('spectrum/upload/', views.upload_spectrum, name='upload_spectrum'),
-    path('token/regenerate/', views.regenerate_token_view, name='regenerate_token'),  # New
+    path('token/regenerate/', views.regenerate_token_view, name='regenerate_token'),
 ]

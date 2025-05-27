@@ -1,6 +1,7 @@
 # spectra/views.py
 import base64
 
+from pydotthz import DotthzFile, DotthzMeasurement, DotthzMetaData
 from django.forms import forms
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
@@ -8,7 +9,9 @@ from django.views.generic import ListView
 from .models import Material
 from .forms import SpectrumUploadForm, SpectrumFilterForm
 import io
-from rest_framework.authtoken.models import Token  # Import Token model
+from rest_framework.authtoken.models import Token
+from django.http import HttpResponse
+import numpy as np
 
 from django.shortcuts import render, get_object_or_404
 from .models import Spectrum
@@ -31,9 +34,6 @@ def home_view(request):
 def spectrum_list_or_detail(request, pk=None):
     spectra = Spectrum.objects.select_related('material', 'uploaded_by').all()
     filter_form = SpectrumFilterForm(request.GET or None)
-
-    print("spectrum list")
-    print(f"{filter_form=}")
 
     if filter_form.is_valid():
         name = filter_form.cleaned_data.get('name')
@@ -294,6 +294,7 @@ def upload_spectrum(request):
             'prompt_thickness': prompt_thickness_context
         })
 
+
 # You would also need to ensure your 'spectra/upload_spectrum.html' template
 # can conditionally display an input field for 'sample_thickness' when 'prompt_thickness' is true.
 # Example snippet for template:
@@ -304,3 +305,81 @@ def upload_spectrum(request):
 #   {{ form.sample_thickness.errors }}
 # {% endif %}
 # This requires 'sample_thickness' to be a field in your SpectrumUploadForm.
+
+
+@login_required
+def download_spectrum_file(request, pk):
+    spectrum = get_object_or_404(Spectrum, pk=pk)
+
+    filename = f"{spectrum.material.name.replace(' ', '_')}_{spectrum.pk}.thz"
+    thz_buffer = io.BytesIO()
+
+    # Define known standard metadata fields for pydotthz.DotthzMetaData
+    standard_meta_fields = [
+        'user', 'email', 'institution', 'orcid', 'description',
+        'date', 'time', 'version', 'instrument', 'mode'
+    ]
+
+    try:
+        with DotthzFile(thz_buffer, "w") as f:
+            measurement_name = f"{spectrum.material.name.replace(' ', '_')}_ID{spectrum.pk}"
+            measurement = DotthzMeasurement()
+            measurement.datasets = {}
+
+            meta_data = DotthzMetaData()
+            # Populate metadata from spectrum.metadata
+            if spectrum.metadata:
+                for key, value in spectrum.metadata.items():
+                    if value is None:  # Skip None values or pydotthz might error
+                        continue
+                    if key in standard_meta_fields:
+                        setattr(meta_data, key, str(value))  # Ensure value is string if expected
+                    else:
+                        meta_data.md[key] = value
+
+            if not meta_data.description and spectrum.notes:  # If not set from metadata, use notes
+                meta_data.description = spectrum.notes
+            elif not meta_data.description:
+                meta_data.description = f"Exported data for {spectrum.material.name}"
+
+            # Ensure some key identifiers from the database are in the custom metadata
+            meta_data.md["DatabaseSpectrumID"] = spectrum.pk
+            meta_data.md["DatabaseMaterialName"] = spectrum.material.name
+            meta_data.md["DatabaseUploadTimestamp"] = spectrum.upload_timestamp.isoformat()
+            meta_data.md["DatabaseUploadUser"] = spectrum.uploaded_by.username
+            if spectrum.notes:
+                meta_data.md["DatabaseNotes"] = spectrum.notes
+
+            raw_sample_list_t = spectrum.raw_sample_data_t
+            raw_sample_list_p = spectrum.raw_sample_data_p
+            if raw_sample_list_t and raw_sample_list_p:
+                try:
+                    raw_sample_np = np.array([np.array([t, p]) for t, p in zip(raw_sample_list_t, raw_sample_list_p)],dtype=float)
+                    measurement.datasets["Sample"] = raw_sample_np
+                except Exception as e_rs:
+                    print(f"Could not process raw_sample_data for spectrum {pk}: {e_rs}")
+
+            raw_reference_list_t = spectrum.raw_reference_data_t
+            raw_reference_list_p = spectrum.raw_reference_data_p
+            if raw_reference_list_t and raw_reference_list_p:
+                try:
+                    raw_reference_np = np.array([np.array([t, p]) for t, p in zip(raw_reference_list_t, raw_reference_list_p)], dtype=float)
+                    measurement.datasets["Reference"] = raw_reference_np
+                except Exception as e_rr:
+                    print(f"Could not process raw_reference_data for spectrum {pk}: {e_rr}")
+
+            measurement.meta_data = meta_data
+            f.write_measurement(measurement_name, measurement)
+
+    except Exception as e:
+        print(f"Error creating .thz file for spectrum {pk}: {e}")
+        return HttpResponse(f"Could not generate .thz file due to an internal error. Details: {e}", status=500,
+                        content_type="text/plain")
+
+    thz_buffer.seek(0)
+    file_content = thz_buffer.getvalue()
+    thz_buffer.close()
+
+    response = HttpResponse(file_content, content_type='application/pydotthz')  # Or application/octet-stream
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response

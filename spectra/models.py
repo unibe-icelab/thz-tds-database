@@ -17,18 +17,19 @@ class Spectrum(models.Model):
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     upload_timestamp = models.DateTimeField(default=timezone.now)
 
-    spectral_data = models.JSONField(
-        help_text="JSON object with 'frequency' and 'intensity' keys, each holding a list of numbers."
-    )
     metadata = models.JSONField(
         blank=True, null=True,
         help_text="Additional metadata as a JSON object (e.g., units, temperature)."
     )
     notes = models.TextField(blank=True, null=True)
 
-    frequency_data = models.JSONField(default=list)  # or jsonfield.JSONField() if using older Django
+    frequency_data = models.JSONField(default=list)
     refractive_index_data = models.JSONField(default=list)
     absorption_coefficient_data = models.JSONField(default=list)
+    raw_sample_data_t = models.JSONField(default=list)
+    raw_sample_data_p = models.JSONField(default=list)
+    raw_reference_data_t = models.JSONField(default=list)
+    raw_reference_data_p = models.JSONField(default=list)
 
     refractive_index_data_available = models.BooleanField(default=False)
     absorption_coefficient_data_available = models.BooleanField(default=False)

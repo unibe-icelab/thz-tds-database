@@ -202,6 +202,24 @@ class SpectrumUploadForm(forms.ModelForm):
                     'absorption_coefficient': list(buffer["absorption_coefficient"])
                 }
 
+                spectral_data_dict['raw_sample_data_t'] = []
+                spectral_data_dict['raw_sample_data_p'] = []
+                spectral_data_dict['raw_reference_data_t'] = []
+                spectral_data_dict['raw_reference_data_p'] = []
+
+                raw_sample_obj = measurement.datasets[sample_key]
+                raw_reference_obj = measurement.datasets[ref_key]
+
+                sample_time = raw_sample_obj[:, 0]
+                sample_pulse = raw_sample_obj[:, 1]
+                reference_time = raw_reference_obj[:, 0]
+                reference_pulse = raw_reference_obj[:, 1]
+
+                spectral_data_dict['raw_sample_data_t'] = list(sample_time)
+                spectral_data_dict['raw_sample_data_p'] = list(sample_pulse)
+                spectral_data_dict['raw_reference_data_t'] = list(reference_time)
+                spectral_data_dict['raw_reference_data_p'] = list(reference_pulse)
+
             return spectral_data_dict, metadata_dict
         except KeyError as e:
             raise forms.ValidationError(f"Error processing .thz file: Missing key: '{e.args[0]}'.")
@@ -259,6 +277,10 @@ class SpectrumUploadForm(forms.ModelForm):
             instance.frequency_data = parsed_spectral_data.get("frequency") or []
             instance.refractive_index_data = parsed_spectral_data.get("refractive_index") or []
             instance.absorption_coefficient_data = parsed_spectral_data.get("absorption_coefficient") or []
+            instance.raw_sample_data_t = parsed_spectral_data.get("raw_sample_data_t") or []
+            instance.raw_sample_data_p = parsed_spectral_data.get("raw_sample_data_p") or []
+            instance.raw_reference_data_t = parsed_spectral_data.get("raw_reference_data_t") or []
+            instance.raw_reference_data_p = parsed_spectral_data.get("raw_reference_data_p") or []
         else:
             instance.spectral_data = {}
             instance.frequency_data = []

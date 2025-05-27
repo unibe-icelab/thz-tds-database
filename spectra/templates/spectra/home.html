@@ -3,10 +3,10 @@
 {% block title %}Home - THz Spectra App{% endblock %}
 
 {% block content %}
-<section>
+<section class="form-container">
     <h2>Welcome to the THz Spectra Database, {{ user.username|default:'Guest' }}!</h2>
 
-    {% if user_is_authenticated %}
+    {% if user.is_authenticated %} {# Changed from user_is_authenticated #}
     <p>You can upload, view and download THz spectra on the web or using your api key below.</p>
     <p>Pack your Measurement as a .thz file with a "Sample" time trace measurement, "Reference" time trace measurement
         and the corresponding meta-data (at least "Sample Thickness (mm)" ) and upload it using the web interface. </p>

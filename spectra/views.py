@@ -6,6 +6,12 @@ from django.forms import forms
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.views.generic import ListView
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+
+from .serializers import SpectrumSerializer
 from .models import Material
 from .forms import SpectrumUploadForm, SpectrumFilterForm
 import io
@@ -354,7 +360,8 @@ def download_spectrum_file(request, pk):
             raw_sample_list_p = spectrum.raw_sample_data_p
             if raw_sample_list_t and raw_sample_list_p:
                 try:
-                    raw_sample_np = np.array([np.array([t, p]) for t, p in zip(raw_sample_list_t, raw_sample_list_p)],dtype=float)
+                    raw_sample_np = np.array([np.array([t, p]) for t, p in zip(raw_sample_list_t, raw_sample_list_p)],
+                                             dtype=float)
                     measurement.datasets["Sample"] = raw_sample_np
                 except Exception as e_rs:
                     print(f"Could not process raw_sample_data for spectrum {pk}: {e_rs}")
@@ -363,7 +370,8 @@ def download_spectrum_file(request, pk):
             raw_reference_list_p = spectrum.raw_reference_data_p
             if raw_reference_list_t and raw_reference_list_p:
                 try:
-                    raw_reference_np = np.array([np.array([t, p]) for t, p in zip(raw_reference_list_t, raw_reference_list_p)], dtype=float)
+                    raw_reference_np = np.array(
+                        [np.array([t, p]) for t, p in zip(raw_reference_list_t, raw_reference_list_p)], dtype=float)
                     measurement.datasets["Reference"] = raw_reference_np
                 except Exception as e_rr:
                     print(f"Could not process raw_reference_data for spectrum {pk}: {e_rr}")
@@ -374,7 +382,7 @@ def download_spectrum_file(request, pk):
     except Exception as e:
         print(f"Error creating .thz file for spectrum {pk}: {e}")
         return HttpResponse(f"Could not generate .thz file due to an internal error. Details: {e}", status=500,
-                        content_type="text/plain")
+                            content_type="text/plain")
 
     thz_buffer.seek(0)
     file_content = thz_buffer.getvalue()
@@ -383,3 +391,65 @@ def download_spectrum_file(request, pk):
     response = HttpResponse(file_content, content_type='application/pydotthz')  # Or application/octet-stream
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_upload_spectrum(request):
+    """
+    API endpoint to upload a new spectrum.
+    Expects 'binary_data_file' and 'material_name' in request.data.
+    """
+    # This is a simplified version. You'll need to adapt it to your
+    # existing upload_spectrum logic, especially file handling and metadata extraction.
+    # Consider using a serializer for validation and saving.
+    # For example, if your SpectrumSerializer can handle file uploads:
+    # serializer = SpectrumSerializer(data=request.data, context={'request': request})
+    # if serializer.is_valid():
+    #     serializer.save(uploaded_by=request.user)
+    #     return Response(serializer.data, status=status.HTTP_201_CREATED)
+    # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # Placeholder logic:
+    if 'binary_data_file' not in request.FILES or 'material_name' not in request.data:
+        return Response({'error': 'Missing required fields (binary_data_file, material_name).'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    # Add your file processing and model creation logic here
+    # Example:
+    # spectrum = Spectrum.objects.create(
+    #     material_name=request.data['material_name'],
+    #     binary_data_file=request.FILES['binary_data_file'],
+    #     uploaded_by=request.user
+    # )
+    # # Perform any additional processing like metadata extraction if needed
+    # spectrum.save()
+    # return Response({'message': 'Spectrum uploaded successfully', 'id': spectrum.id}, status=status.HTTP_201_CREATED)
+
+    return Response({'message': 'API upload endpoint hit. Implement actual upload logic.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_spectrum_list(request):
+    """
+    API endpoint to list all spectra.
+    """
+    spectra = Spectrum.objects.all()  # Or filter as needed, e.g., by user
+    serializer = SpectrumSerializer(spectra, many=True, context={'request': request})
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_spectrum_detail(request, pk):
+    """
+    API endpoint to retrieve a single spectrum's details.
+    """
+    try:
+        spectrum = Spectrum.objects.get(pk=pk)
+    except Spectrum.DoesNotExist:
+        return Response({'error': 'Spectrum not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = SpectrumSerializer(spectrum, context={'request': request})
+    return Response(serializer.data)

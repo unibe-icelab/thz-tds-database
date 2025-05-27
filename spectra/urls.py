@@ -15,10 +15,9 @@ urlpatterns = [
     path('spectrum/upload/', views.upload_spectrum, name='upload_spectrum'),
     path('token/regenerate/', views.regenerate_token_view, name='regenerate_token'),
 
-    # path('api/upload/', views.api_upload_spectrum, name='api_upload_spectrum'),
-    # path('api/spectra/', views.api_spectrum_list, name='api_spectrum_list'),
-    # path('api/spectra/<int:pk>/', views.api_spectrum_detail, name='api_spectrum_detail'),
-    # path('api/spectra/<int:pk>/download/', views.api_download_spectrum_file, name='api_download_spectrum_file'),
+    path('api/upload/', views.api_upload_spectrum, name='api_upload_spectrum'),
+    path('api/spectra/', views.api_spectrum_list, name='api_spectrum_list'),
+    path('api/spectra/<int:pk>/', views.api_spectrum_detail, name='api_spectrum_detail'),
 
     # Password Change URLs
     path('password_change/',

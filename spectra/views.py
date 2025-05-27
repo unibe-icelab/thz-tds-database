@@ -2,16 +2,30 @@
 import base64
 
 from django.forms import forms
-from django.shortcuts import  redirect
+from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.views.generic import ListView
-from .models import  Material
+from .models import Material
 from .forms import SpectrumUploadForm, SpectrumFilterForm
 import io
+from rest_framework.authtoken.models import Token  # Import Token model
 
 from django.shortcuts import render, get_object_or_404
 from .models import Spectrum
 import plotly.graph_objs as go
+
+
+def home_view(request):
+    api_key = None
+    if request.user.is_authenticated:
+        token, created = Token.objects.get_or_create(user=request.user)
+        api_key = token.key
+
+    context = {
+        'api_key': api_key,
+        'user_is_authenticated': request.user.is_authenticated,
+    }
+    return render(request, 'spectra/home.html', context)
 
 
 def spectrum_list_or_detail(request, pk=None):
@@ -147,6 +161,15 @@ class SpectrumListView(ListView):
         context = super().get_context_data(**kwargs)
         context['filter_form'] = getattr(self, 'filter_form', SpectrumFilterForm())
         return context
+
+
+@login_required
+def regenerate_token_view(request):
+    if request.method == 'POST':
+        Token.objects.filter(user=request.user).delete()
+        Token.objects.create(user=request.user)
+    return redirect('spectra:home')
+
 
 @login_required
 def upload_spectrum(request):

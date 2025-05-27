@@ -1,9 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}THz Spectra Database{% endblock %}</title>
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
     <style>
         body {
             font-family: sans-serif;
@@ -24,10 +26,13 @@
         nav ul {
             list-style-type: none;
             padding: 0;
+            display: flex; /* Added for alignment */
+            align-items: center; /* Added for alignment */
         }
 
         nav ul li {
-            display: inline;
+            display: inline-flex; /* Changed for alignment */
+            align-items: center; /* Added for alignment */
             margin-right: 15px;
         }
 
@@ -38,6 +43,12 @@
 
         nav a:hover {
             color: #007bff;
+        }
+
+        .header-icon {
+            height: 24px; /* Adjust size as needed */
+            width: auto;
+            margin-right: 8px; /* Space between icon and "Home" */
         }
 
         .container {
@@ -163,6 +174,48 @@
         .login-form button[type="submit"]:hover {
             background: #0056b3;
         }
+
+        /* Styles for token display */
+        .token-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            max-width: 500px; /* Or adjust as needed */
+        }
+        .token-container input[readonly] {
+            flex-grow: 1;
+            margin-right: 8px;
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f0f0f0;
+            font-family: monospace;
+        }
+        .token-container button {
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .token-container button.secondary { /* Example for a secondary button style */
+            background-color: #6c757d;
+            color: white;
+            border-color: #6c757d;
+        }
+        .token-container button.secondary:hover {
+            background-color: #5a6268;
+            border-color: #545b62;
+        }
+        .token-container button.outline { /* Example for an outline button style */
+            background-color: transparent;
+            color: #007bff;
+            border: 1px solid #007bff;
+        }
+        .token-container button.outline:hover {
+            background-color: #007bff;
+            color: white;
+        }
+
     </style>
     {% block head_extra %}{% endblock %}
 </head>
@@ -170,6 +223,11 @@
 <header>
     <nav class="container">
         <ul>
+            <li>
+                <a href="{% url 'spectra:home' %}">
+                    <img src="{% static 'images/header.png' %}" alt="Icon" class="header-icon">
+                </a>
+            </li>
             <li><a href="{% url 'spectra:spectrum_list' %}">Spectra List</a></li>
             <li><a href="{% url 'spectra:upload_spectrum' %}">Upload Spectrum</a></li>
             {% if user.is_authenticated %}

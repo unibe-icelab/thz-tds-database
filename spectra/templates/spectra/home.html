@@ -1,13 +1,83 @@
 {% extends "spectra/base.html" %}
 
-{% block title %}Home - THz Spectra Database{% endblock %}
+{% block title %}Home - THz Spectra App{% endblock %}
 
 {% block content %}
-<h1>Welcome to the THz Spectra Database</h1>
-<p>This is a dedicated home page for the spectra application.</p>
-<p>
-    You can <a href="{% url 'spectra:spectrum_list' %}">view all available spectra</a>,
-    manage <a href="{% url 'spectra:material_list' %}">materials</a>,
-    or <a href="{% url 'spectra:upload_spectrum' %}">upload a new spectrum</a>.
-</p>
+<section>
+    <h2>Welcome to the THz Spectra Database, {{ user.username|default:'Guest' }}!</h2>
+
+    {% if user_is_authenticated %}
+    <p>You can upload, view and download THz spectra on the web or using your api key below.</p>
+    <p>Pack your Measurement as a .thz file with a "Sample" time trace measurement, "Reference" time trace measurement
+        and the corresponding meta-data (at least "Sample Thickness (mm)" ) and upload it using the web interface. </p>
+    <h4>Your API Token:</h4>
+    {% if api_key %}
+    <div class="token-container">
+        <input type="text" value="{{ api_key }}" id="apiToken" readonly aria-label="API Token">
+        <button onclick="copyTokenToClipboard()" class="secondary" style="margin-right: 5px;">Copy</button>
+        <form action="{% url 'spectra:regenerate_token' %}" method="post" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="contrast outline">Generate New Token</button>
+        </form>
+    </div>
+    <small id="copyStatus" style="display: none; color: green; margin-left: 5px;">Copied!</small>
+    <p><small>Use this token to authenticate API requests.</small></p>
+    {% else %}
+    <p>No API token found. One will be generated for you if needed, or you can try logging out and back in.</p>
+    {% endif %}
+    {% else %}
+    <p>Please <a href="{% url 'login' %}?next={{ request.path }}">login</a> to access your dashboard and API token.</p>
+    {% endif %}
+
+    <hr>
+
+    <h4>Quick Actions:</h4>
+    <p><a href="{% url 'spectra:spectrum_list' %}" role="button" class="primary">View All Spectra</a></p>
+    {% if user.is_authenticated %}
+    <p><a href="{% url 'spectra:upload_spectrum' %}" role="button" class="secondary">Upload New Spectrum</a></p>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    function copyTokenToClipboard() {
+        var tokenInput = document.getElementById("apiToken");
+        if (!tokenInput) return; // Element might not exist if no token
+
+        tokenInput.select();
+        tokenInput.setSelectionRange(0, 99999); // For mobile devices
+
+        try {
+            var successful = document.execCommand('copy');
+            var copyStatus = document.getElementById("copyStatus");
+            if (successful) {
+                copyStatus.textContent = "Copied!";
+                copyStatus.style.color = "green";
+            } else {
+                copyStatus.textContent = "Copy failed!";
+                copyStatus.style.color = "red";
+            }
+            copyStatus.style.display = "inline";
+            setTimeout(function () {
+                copyStatus.style.display = "none";
+            }, 2000);
+        } catch (err) {
+            var copyStatus = document.getElementById("copyStatus");
+            copyStatus.textContent = "Oops, unable to copy";
+            copyStatus.style.color = "red";
+            copyStatus.style.display = "inline";
+            setTimeout(function () {
+                copyStatus.style.display = "none";
+            }, 2000);
+        }
+
+        // Deselect the text
+        if (window.getSelection) {
+            window.getSelection().removeAllRanges();
+        } else if (document.selection) {
+            document.selection.empty();
+        }
+    }
+</script>
 {% endblock %}

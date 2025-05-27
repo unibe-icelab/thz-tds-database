@@ -20,7 +20,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
+    'rest_framework',
+    'rest_framework.authtoken',
     'spectra.apps.SpectraConfig',  # Your app
 
     # Add 'crispy_forms' if you decide to use it for form styling
@@ -85,6 +86,10 @@ STATIC_URL = '/static/'
 # Add STATICFILES_DIRS if you have project-level static files not in an app
 # STATICFILES_DIRS = [BASE_DIR / "static"]
 
+# Add STATICFILES_DIRS to tell Django where to find project-level static files
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',

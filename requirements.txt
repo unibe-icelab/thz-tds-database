@@ -5,3 +5,5 @@ gunicorn
 mysqlclient
 numpy~=2.2.6
 thzpy~=0.0.4
+djangorestframework~=3.16.0
+channels~=4.2.2

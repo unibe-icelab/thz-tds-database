@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'your-very-long-and-random-secret-key-here'  #
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False  # Set to False in production
+DEBUG = True  # Set to False in production
 
 ALLOWED_HOSTS = ["*"]
 
@@ -82,10 +82,10 @@ STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # # Add STATICFILES_DIRS to tell Django where to find project-level static files
-# STATICFILES_DIRS = [
-#     BASE_DIR / "static",
-# ]
-#
+STATICFILES_DIRS = [
+    BASE_DIR / "static", # If 'static' is in your project root (BASE_DIR)
+]
+
 # STATICFILES_FINDERS = [
 #     'django.contrib.staticfiles.finders.FileSystemFinder',
 #     'django.contrib.staticfiles.finders.AppDirectoriesFinder',

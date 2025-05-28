@@ -42,7 +42,7 @@
         margin: 0;
     }
 
-    .spectra-list-panel li {
+.spectra-list-panel li {
         margin: 0 12px 12px 12px;
         border-radius: 8px;
         box-shadow: 0 1px 4px rgba(26, 45, 70, 0.06);
@@ -143,7 +143,6 @@
         text-align: left;
         border-bottom: 1px solid #2f4566; /* Subtle separator for rows */
     }
-
     .meta-table tr:last-child th,
     .meta-table tr:last-child td {
         border-bottom: none; /* No border for the last row */
@@ -161,7 +160,6 @@
         vertical-align: top; /* Align top */
         word-break: break-word; /* Break long strings */
     }
-
     .meta-table td pre {
         background-color: #1a2d46; /* Darker background for preformatted text */
         color: #e0e4ea;
@@ -253,7 +251,7 @@
     }
 
     .spectra-list-panel a.download-btn .download-icon {
-        width: 32px; /* Desired width of your icon */
+        width: 32px;  /* Desired width of your icon */
         height: 32px; /* Desired height of your icon */
         display: block; /* Remove extra space below inline images */
         /* For SVGs, you might want to control fill color via CSS if the SVG is designed for it */
@@ -286,8 +284,7 @@
             {{ filter_form.uploaded_by }}
         </div>
         <div>
-            <label for="{{ filter_form.upload_date_from_or_exact.id_for_label }}">{{
-                filter_form.upload_date_from_or_exact.label }}</label>
+            <label for="{{ filter_form.upload_date_from_or_exact.id_for_label }}">{{ filter_form.upload_date_from_or_exact.label }}</label>
             {{ filter_form.upload_date_from_or_exact }}
         </div>
         <div>
@@ -312,8 +309,7 @@
     <div class="spectra-list-panel">
         <div class="spectra-list-header">Spectra</div>
         <ul>
-            {% for spectrum_item in spectra %} {# Renamed to avoid conflict if selected_spectrum is also named spectrum
-            #}
+            {% for spectrum_item in spectra %} {# Renamed to avoid conflict if selected_spectrum is also named spectrum #}
             <li>
                 <a href="{% url 'spectra:spectrum_detail' spectrum_item.pk %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
                    class="{% if selected_spectrum and selected_spectrum.pk == spectrum_item.pk %}selected{% endif %}">
@@ -328,13 +324,11 @@
                 <a href="{% url 'spectra:download_spectrum_file' spectrum_item.pk %}"
                    class="download-btn"
                    title="Download {{ spectrum_item.material.name }}.thz">
-                    <img src="{% static 'images/download-icon.svg' %}" alt="Download" class="download-icon">
+                   <img src="{% static 'images/download-icon.svg' %}" alt="Download" class="download-icon">
                 </a>
             </li>
             {% empty %}
-            <li>
-                <div style="padding: 16px 18px;">No spectra found.</div>
-            </li>
+             <li><div style="padding: 16px 18px;">No spectra found.</div></li>
             {% endfor %}
         </ul>
     </div>
@@ -345,38 +339,34 @@
         {% if selected_spectrum and selected_spectrum.metadata %} {# Use selected_spectrum.metadata directly #}
         <table class="meta-table">
             <thead>
-            <tr>
-                <th colspan="2" style="text-align:center; font-size: 1.1em; padding-bottom: 0.8em;">Metadata for {{
-                    selected_spectrum.material.name }}
-                </th>
-            </tr>
+                 <tr>
+                    <th colspan="2" style="text-align:center; font-size: 1.1em; padding-bottom: 0.8em;">Metadata for {{ selected_spectrum.material.name }}</th>
+                </tr>
             </thead>
             <tbody>
-            {% if selected_spectrum.material.chemical_structure_image %}
-            <tr>
-                <td colspan="2" style="text-align: center; padding-top: 0.5em; padding-bottom: 0.5em;">
-                    <img src="{% url 'spectra:material_image' selected_spectrum.material.id %}"
-                         alt="Chemical structure of {{ selected_spectrum.material.name }}"
-                         style="max-width: 200px; max-height: 200px; border: 1px solid #ccc; display: block; margin-left: auto; margin-right: auto;">
-                </td>
-            </tr>
+             {% if selected_spectrum.material.chemical_structure_image %}
+                <tr>
+                    <td colspan="2" style="text-align: center; padding-top: 0.5em; padding-bottom: 0.5em;">
+                        <img src="{% url 'spectra:material_image' selected_spectrum.material.id %}" alt="Chemical structure of {{ selected_spectrum.material.name }}" style="max-width: 200px; max-height: 200px; border: 1px solid #ccc; display: block; margin-left: auto; margin-right: auto;">
+                    </td>
+                </tr>
             {% else %}
-            <tr>
-                <td colspan="2" style="text-align: center; padding-top: 0.5em; padding-bottom: 0.5em;">
-                    <p>No chemical structure image available for {{ selected_spectrum.material.name }}.</p>
-                </td>
-            </tr>
+                <tr>
+                    <td colspan="2" style="text-align: center; padding-top: 0.5em; padding-bottom: 0.5em;">
+                        <p>No chemical structure image available for {{ selected_spectrum.material.name }}.</p>
+                    </td>
+                </tr>
             {% endif %}
             {% for key, value in selected_spectrum.metadata.items %}
             <tr>
                 <th>{{ key|title }}</th>
                 <td>
                     {% if value|is_list or value|is_dict %}
-                    <pre>{{ value|pprint }}</pre>
+                        <pre>{{ value|pprint }}</pre>
                     {% elif value is None or value == "" %}
-                    <span style="color: #777;">N/A</span>
+                        <span style="color: #777;">N/A</span>
                     {% else %}
-                    {{ value }}
+                        {{ value }}
                     {% endif %}
                 </td>
             </tr>
@@ -384,9 +374,7 @@
             </tbody>
         </table>
         {% elif selected_spectrum %}
-        <div class="meta-table" style="text-align:center; padding: 1em;">No additional metadata available for this
-            spectrum.
-        </div>
+         <div class="meta-table" style="text-align:center; padding: 1em;">No additional metadata available for this spectrum.</div>
         {% endif %}
     </div>
 </div>
@@ -401,22 +389,8 @@
         }
     });
 
-    var fig_refidx_json = {
-    {
-        plotly_fig_refidx | safe |
-    default:
-        'null'
-    }
-    }
-    ;
-    var fig_abscoeff_json = {
-    {
-        plotly_fig_abscoeff | safe |
-    default:
-        'null'
-    }
-    }
-    ;
+    var fig_refidx_json = {{ plotly_fig_refidx|safe|default:'null' }};
+    var fig_abscoeff_json = {{ plotly_fig_abscoeff|safe|default:'null' }};
 
     if (fig_refidx_json && fig_refidx_json.data && fig_refidx_json.layout) {
         Plotly.newPlot('plotly-plot-refidx', fig_refidx_json.data, fig_refidx_json.layout, {responsive: true});
@@ -427,13 +401,13 @@
     if (fig_abscoeff_json && fig_abscoeff_json.data && fig_abscoeff_json.layout) {
         Plotly.newPlot('plotly-plot-abscoeff', fig_abscoeff_json.data, fig_abscoeff_json.layout, {responsive: true});
     } else if (document.getElementById('plotly-plot-abscoeff')) {
-        document.getElementById('plotly-plot-abscoeff').innerHTML = '<p style=\"color:white;text-align:center;padding-top:20%;\">Absorption coefficient data not available or not selected.</p>';
+         document.getElementById('plotly-plot-abscoeff').innerHTML = '<p style=\"color:white;text-align:center;padding-top:20%;\">Absorption coefficient data not available or not selected.</p>';
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         var selected = document.querySelector('.spectra-list-panel a.selected');
         if (selected) {
-            selected.scrollIntoView({behavior: 'auto', block: 'nearest'});
+          selected.scrollIntoView({ behavior: 'auto', block: 'nearest' });
         }
     });
 </script>

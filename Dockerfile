@@ -38,8 +38,8 @@ RUN mkdir -p /app/staticfiles && python manage.py collectstatic --noinput
 RUN python manage.py collectstatic --noinput
 
 # Expose the port Gunicorn will run on
-EXPOSE 8000
+EXPOSE 8001
 
 # Define the command to run your application using Gunicorn
 # Ensure 'thz_database.wsgi:application' matches your project structure
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "thz_database.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8001", "thz_database.wsgi:application"]

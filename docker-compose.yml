@@ -4,14 +4,14 @@ services:
   web:
     build: .
     container_name: thz_database_gunicorn
-    command: gunicorn --bind 0.0.0.0:8000 thz_database.wsgi:application
+    command: gunicorn --bind 0.0.0.0:8001 thz_database.wsgi:application
     volumes:
       - .:/app # Mounts the current directory to /app in the container for development
       # You might want to add other volumes for persistent data, e.g.:
       # - static_volume:/app/staticfiles
       # - media_volume:/app/mediafiles
     ports:
-      - "8000:8000"
+      - "8001:8001"
     environment:
       - SECRET_KEY=your_secret_key_here # Change this in production
       - DEBUG=1 # Set to 0 in production

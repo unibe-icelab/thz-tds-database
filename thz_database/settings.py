@@ -15,6 +15,12 @@ DEBUG = True  # Set to False in production
 
 ALLOWED_HOSTS = ["*"]
 
+CSRF_TRUSTED_ORIGINS = ["https://linusleo.synology.me"]
+# If Nginx is handling SSL termination, Django needs to know it can trust
+# the X-Forwarded-Proto header from the proxy.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True # If Nginx sets X-Forwarded-Host
+
 TIME_ZONE = 'Europe/Berlin'
 
 USE_I18N = True

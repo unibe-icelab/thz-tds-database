@@ -3,7 +3,7 @@
 This is a Django-based web application for managing and serving a database of THz time-domain spectra. The application provides a user-friendly interface for uploading, viewing, and analyzing THz spectra data.
 
 Files can be uploaded in the [dotTHz](https://github.com/dotTHzTAG) format, which is a specialized format for storing THz time-domain spectra.
-The file should contain a `Sample` and `Reference` dataset (time-domain) and the corresponding metadata (only the `Sample Thickness (mm)` is essential).
+The file should contain a `Sample` and `Reference` dataset (time-domain) and the corresponding metadata (only the `Sample Thickness (mm)` is essential). Make sure that only the primary pulse is included in each trace.
 After uploading, the time domain data is automatically converted to refractive index and absorption coefficient using the [thzpy](https://github.com/dotTHzTAG/thzpy) library , which are then stored in the database for easy analysis.
 
 Files can be downloaded in the dotTHz format (they are freshly generated with adapted metadata). 

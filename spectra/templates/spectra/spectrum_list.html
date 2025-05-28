@@ -280,24 +280,21 @@
     .spectra-list-panel a.download-btn:hover .download-icon {
         /* fill: #1a2d46; /* If SVG and uses fill */
     }
-    .plot-controls { /* Style for the button container */
+    .plot-controls {
         text-align: center;
         padding: 10px 0;
         background: #1a2d46; /* Match plot panel background */
+        color: #fff; /* Text color for labels */
     }
 
-    .plot-controls button { /* Basic styling for the button */
-        color: #fff;
-        background-color: #337ab7; /* A standard blue */
-        border-color: #2e6da4;
-        padding: 6px 12px;
-        font-size: 14px;
-        border-radius: 4px;
+    .plot-controls label {
+        margin: 0 10px; /* Spacing between radio options */
         cursor: pointer;
     }
-    .plot-controls button:hover {
-        background-color: #286090;
-        border-color: #204d74;
+
+    .plot-controls input[type="radio"] {
+        margin-right: 5px;
+        vertical-align: middle;
     }
 
 </style>
@@ -362,9 +359,11 @@
         </ul>
     </div>
     <div class="plot-panel" style="flex-direction:column;">
-        <!-- Button to toggle x-axis unit -->
-        <div class="plot-controls">
-            <button id="toggle-xaxis-unit">Switch to Wavenumber (cm⁻¹)</button>
+        <!-- Radio buttons to select x-axis unit -->
+        <div class="plot-controls" id="xaxis-unit-selector">
+            <label><input type="radio" name="xaxisUnit" value="thz" checked> Frequency (THz)</label>
+            <label><input type="radio" name="xaxisUnit" value="cm-1"> Wavenumber (cm⁻¹)</label>
+            <label><input type="radio" name="xaxisUnit" value="mm"> Wavelength (mm)</label>
         </div>
 
         <div id="plotly-plot-refidx" style="width:90%;height:28vh;margin-bottom:2vh;"></div>
@@ -385,7 +384,7 @@
                     </td>
                 </tr>
             {% elif selected_spectrum.metadata %} {# Show "no image" only if there's other metadata to show #}
-                <tr>
+                 <tr>
                     <td colspan="2" style="text-align: center; padding-top: 0.5em; padding-bottom: 0.5em;">
                         <p>No chemical structure image available for {{ selected_spectrum.material.name }}.</p>
                     </td>
@@ -421,12 +420,12 @@
     // --- X-axis toggle logic ---
     let originalFrequenciesRefidx = null;
     let originalFrequenciesAbscoeff = null;
-    let currentXAxisUnit = 'thz'; // 'thz' or 'cm-1'
+    let currentXAxisUnit = 'thz'; // Initial unit, matches the checked radio button
     const THZ_TO_CM_INV = 33.3564095198152; // Conversion factor: 1 THz to cm^-1
+    const C_MM_PER_PICOSECOND = 0.299792458; // Speed of light in mm/ps (mm * THz)
 
     function storeOriginalFrequencies() {
         if (fig_refidx_json && fig_refidx_json.data) {
-            // Store a deep copy of x-data for each trace
             originalFrequenciesRefidx = fig_refidx_json.data.map(trace => (trace.x ? [...trace.x] : []));
         } else {
             originalFrequenciesRefidx = null;
@@ -438,9 +437,24 @@
         }
     }
 
-    // Call after fig_..._json are defined from template
     storeOriginalFrequencies();
-    // --- End X-axis toggle logic ---
+
+    function convertXAxisData(originalFreqs, targetUnit) {
+        if (!originalFreqs) return null;
+        return originalFreqs.map(trace => {
+            if (!trace || trace.length === 0) return [];
+            if (targetUnit === 'cm-1') {
+                return trace.map(f => f * THZ_TO_CM_INV);
+            } else if (targetUnit === 'mm') {
+                // For wavelength, reverse the order of data points if you want to maintain
+                // a "low to high" visual progression similar to frequency.
+                // However, standard is to plot actual wavelength values.
+                // λ = c/f. If f=0, λ is Infinity.
+                return trace.map(f => f === 0 ? Infinity : C_MM_PER_PICOSECOND / f);
+            }
+            return [...trace]; // Default to THz (original)
+        });
+    }
 
     window.addEventListener('resize', function () {
         if (document.getElementById('plotly-plot-refidx') && typeof Plotly !== 'undefined' && Plotly.Plots) {
@@ -451,7 +465,6 @@
         }
     });
 
-    // Initial plot rendering
     if (fig_refidx_json && fig_refidx_json.data && fig_refidx_json.layout) {
         Plotly.newPlot('plotly-plot-refidx', fig_refidx_json.data, fig_refidx_json.layout, {responsive: true});
     } else if (document.getElementById('plotly-plot-refidx')) {
@@ -465,55 +478,57 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        // Scroll selected item into view
         var selected = document.querySelector('.spectra-list-panel a.selected');
         if (selected) {
           selected.scrollIntoView({ behavior: 'auto', block: 'nearest' });
         }
 
-        // --- X-axis toggle button setup ---
-        const toggleButton = document.getElementById('toggle-xaxis-unit');
-        if (toggleButton) {
-            toggleButton.addEventListener('click', function() {
-                // Check if there's any plot data to work with
+        const radioButtons = document.querySelectorAll('input[name="xaxisUnit"]');
+
+        radioButtons.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (!this.checked) return; // Only act if this radio button is now selected
+
+                const selectedUnit = this.value;
+
                 const hasRefidxData = originalFrequenciesRefidx && originalFrequenciesRefidx.length > 0 && originalFrequenciesRefidx.some(trace => trace.length > 0);
                 const hasAbscoeffData = originalFrequenciesAbscoeff && originalFrequenciesAbscoeff.length > 0 && originalFrequenciesAbscoeff.some(trace => trace.length > 0);
 
                 if (!hasRefidxData && !hasAbscoeffData) {
-                    console.log("No plot data with x-values to update for x-axis toggle.");
+                    // console.log("No plot data with x-values to update for x-axis toggle.");
                     return;
                 }
 
-                if (currentXAxisUnit === 'thz') {
-                    // Convert to Wavenumber
-                    if (hasRefidxData) {
-                        const newXData = originalFrequenciesRefidx.map(freq_trace => freq_trace.map(f => f * THZ_TO_CM_INV));
-                        Plotly.update('plotly-plot-refidx', { x: newXData });
-                        Plotly.relayout('plotly-plot-refidx', {'xaxis.title.text': 'Wavenumber (cm⁻¹)'});
-                    }
-                    if (hasAbscoeffData) {
-                        const newXData = originalFrequenciesAbscoeff.map(freq_trace => freq_trace.map(f => f * THZ_TO_CM_INV));
-                        Plotly.update('plotly-plot-abscoeff', { x: newXData });
-                        Plotly.relayout('plotly-plot-abscoeff', {'xaxis.title.text': 'Wavenumber (cm⁻¹)'});
-                    }
-                    currentXAxisUnit = 'cm-1';
-                    toggleButton.textContent = 'Switch to Frequency (THz)';
-                } else {
-                    // Convert back to Frequency
-                    if (hasRefidxData) {
-                        Plotly.update('plotly-plot-refidx', { x: originalFrequenciesRefidx });
-                        Plotly.relayout('plotly-plot-refidx', {'xaxis.title.text': 'Frequency (THz)'});
-                    }
-                    if (hasAbscoeffData) {
-                        Plotly.update('plotly-plot-abscoeff', { x: originalFrequenciesAbscoeff });
-                        Plotly.relayout('plotly-plot-abscoeff', {'xaxis.title.text': 'Frequency (THz)'});
-                    }
-                    currentXAxisUnit = 'thz';
-                    toggleButton.textContent = 'Switch to Wavenumber (cm⁻¹)';
+                let newXLabel;
+                let xaxisLayoutUpdate = {};
+
+                if (selectedUnit === 'thz') {
+                    newXLabel = 'Frequency (THz)';
+                    xaxisLayoutUpdate = {'xaxis.title.text': newXLabel, 'xaxis.autorange': true};
+                } else if (selectedUnit === 'cm-1') {
+                    newXLabel = 'Wavenumber (cm⁻¹)';
+                    xaxisLayoutUpdate = {'xaxis.title.text': newXLabel, 'xaxis.autorange': true};
+                } else { // selectedUnit === 'mm'
+                    newXLabel = 'Wavelength (mm)';
+                    // For wavelength, data often appears "reversed" compared to frequency.
+                    // Default autorange should handle this. If specific range/direction is needed, adjust here.
+                    xaxisLayoutUpdate = {'xaxis.title.text': newXLabel, 'xaxis.autorange': true};
                 }
+
+                if (hasRefidxData) {
+                    const newXDataRefidx = convertXAxisData(originalFrequenciesRefidx, selectedUnit);
+                    Plotly.update('plotly-plot-refidx', { x: newXDataRefidx });
+                    Plotly.relayout('plotly-plot-refidx', xaxisLayoutUpdate);
+                }
+                if (hasAbscoeffData) {
+                    const newXDataAbscoeff = convertXAxisData(originalFrequenciesAbscoeff, selectedUnit);
+                    Plotly.update('plotly-plot-abscoeff', { x: newXDataAbscoeff });
+                    Plotly.relayout('plotly-plot-abscoeff', xaxisLayoutUpdate);
+                }
+
+                currentXAxisUnit = selectedUnit; // Update the global state
             });
-        }
-        // --- End X-axis toggle button setup ---
+        });
     });
 </script>
 {% endblock %}

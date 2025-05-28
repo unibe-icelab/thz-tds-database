@@ -6,9 +6,9 @@ services:
     container_name: thz_database_gunicorn
     command: gunicorn --bind 0.0.0.0:8001 thz_database.wsgi:application
     volumes:
-      - .:/app # Mounts the current directory to /app in the container for development
-      - ./static:/app/static
-      - ./media:/app/media
+      - .:/app # For development code changes
+      - static_volume:/app/staticfiles # Django collects static files here
+      - media_volume:/app/media        # For media files
     ports:
       - "8001:8001"
     environment:
@@ -16,43 +16,23 @@ services:
       - DEBUG=${DEBUG}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - DATABASE_URL=${DATABASE_URL}
-      # Add other environment variables your Django app needs, e.g., database URL
-      # - DATABASE_URL=mysql://user:password@host:port/dbname
-    # If you add a database service, you might add:
     # depends_on:
     #   - db
-
 
   nginx:
     image: nginx:latest
     container_name: thz_database_nginx
     ports:
-      - "6080:80"     # HTTP → maps host:6080 to container:80
-      - "6443:443"    # HTTPS → maps
+      - "6080:80"
+      - "6443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./certs:/etc/nginx/certs:ro
-      - ./static:/app/static
-      - ./media:/app/media
+      - static_volume:/app/staticfiles # Nginx serves static files from here
+      - media_volume:/app/media        # Nginx serves media files from here
     depends_on:
       - web
 
 volumes:
-  static_volume:
-  media_volume:
-
-# Example for a database service (e.g., MySQL, uncomment and configure if needed)
-#  db:
-#    image: mysql:8.0
-#    volumes:
-#      - mysql_data:/var/lib/mysql
-#    environment:
-#      - MYSQL_ROOT_PASSWORD=your_mysql_root_password
-#      - MYSQL_DATABASE=your_db_name
-#      - MYSQL_USER=your_db_user
-#      - MYSQL_PASSWORD=your_db_password
-#    ports:
-#      - "3306:3306"
-
-# volumes:
-#   mysql_data:
+  static_volume: # Define the named volume for collected static files
+  media_volume:  # Define the named volume for media files

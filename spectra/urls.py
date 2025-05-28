@@ -14,6 +14,7 @@ urlpatterns = [
     path('<int:pk>/download/', views.download_spectrum_file, name='download_spectrum_file'),
     path('spectrum/upload/', views.upload_spectrum, name='upload_spectrum'),
     path('token/regenerate/', views.regenerate_token_view, name='regenerate_token'),
+    path('material/<int:material_id>/image/', views.material_image_view, name='material_image'),
 
     path('api/upload/', views.api_upload_spectrum, name='api_upload_spectrum'),
     path('api/spectra/', views.api_spectrum_list, name='api_spectrum_list'),

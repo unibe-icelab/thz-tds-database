@@ -169,6 +169,14 @@ class SpectrumListView(ListView):
         return context
 
 
+def material_image_view(request, material_id):
+    material = get_object_or_404(Material, pk=material_id)
+    if material.chemical_structure_image and material.chemical_structure_image_content_type:
+        return HttpResponse(material.chemical_structure_image, content_type=material.chemical_structure_image_content_type)
+    else:
+        # Optionally, return a placeholder image or a 404
+        return HttpResponse(status=404)
+
 @login_required
 def regenerate_token_view(request):
     if request.method == 'POST':
@@ -232,8 +240,10 @@ def upload_spectrum(request):
         sample_thickness_val = request.POST.get('sample_thickness')
         try:
             # Call _parse_binary_file with the file content and optional thickness
+            material_name = form.data.get('material_name') # Or request.POST.get('material_name')
             parsed_result = form._parse_binary_file(
                 file_to_parse,
+                material_name,
                 sample_thickness=sample_thickness_val
             )
 

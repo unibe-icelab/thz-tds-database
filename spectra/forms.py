@@ -1,6 +1,7 @@
 # spectra/forms.py
 import json
 from django import forms
+from django.core.files.base import ContentFile
 from thzpy.timedomain import common_window
 from thzpy.transferfunctions import uniform_slab
 import re
@@ -10,6 +11,11 @@ from .models import Spectrum, Material
 import pydotthz
 # Removed: from pydotthz.core import Empty
 import numpy as np
+from dotenv import dotenv_values
+from chemspipy import ChemSpider
+
+env_values = dotenv_values("spectra/backend.env")
+RSC_API_KEY = env_values['RSC_API_KEY']
 
 
 class SpectrumFilterForm(forms.Form):
@@ -67,13 +73,16 @@ class SpectrumUploadForm(forms.ModelForm):
         kwargs.pop('ref_choices', None)
         super().__init__(*args, **kwargs)
 
-    def _parse_binary_file(self, b_file, sample_thickness=None):
+    def _parse_binary_file(self, b_file, material_name_from_form, sample_thickness=None):
         """
         Parses .thz binary files.
         Extracts full metadata (converting pydotthz's Empty type to None) and processed spectral data.
+        The 'description' in metadata is initialized with material_name_from_form and overwritten by file metadata if present.
         Raises ValidationError if multiple sample/reference datasets are found or if thickness is missing/invalid.
-        This method is intended to be called by the VIEW.
+        This method is intended to be called by the VIEW, passing the material_name from the form.
         """
+        cs = ChemSpider(RSC_API_KEY)
+
         try:
             b_file.seek(0)
             with pydotthz.DotthzFile(b_file) as f:
@@ -110,7 +119,10 @@ class SpectrumUploadForm(forms.ModelForm):
 
                 # Extract and sanitize full metadata
                 dotthz_meta = measurement.meta_data
-                metadata_dict = {}
+                if material_name_from_form:
+                    metadata_dict = {"description": material_name_from_form}
+                else:
+                    metadata_dict = {}
 
                 # Standard fields from DotthzMetaData attributes
                 standard_fields_map = {
@@ -149,6 +161,35 @@ class SpectrumUploadForm(forms.ModelForm):
                     except (ValueError, TypeError):
                         # Invalid format in metadata, thickness_float remains None.
                         pass
+                description = metadata_dict.get("description")
+                if description:
+                    try:
+                        search_results = cs.search(description)  # Use the variable 'description'
+                        if search_results and search_results and search_results.count > 0:
+                            first_hit = search_results[0]
+                            if hasattr(first_hit, 'csid'):
+                                metadata_dict['chemspider_csid'] = first_hit.csid
+                                # print(f"Found CSID for '{description}': {first_hit.csid}")
+                        # else:
+                        # print(f"No ChemSpider results for '{description}'.")
+                    except Exception as e:
+                        # print(f"ChemSpider search error for '{description}': {e}")
+                        pass  # Optionally log error
+                else:
+                    # Fallback to lactose if no description, or remove this block if not needed
+                    pass
+                    # try:
+                    #     lactose_results = cs.search("lactose")
+                    #     if lactose_results and lactose_results and lactose_results.count > 0:
+                    #         first_lactose_hit = lactose_results[0]
+                    #         if hasattr(first_lactose_hit, 'csid'):
+                    #             metadata_dict['chemspider_csid'] = first_lactose_hit.csid
+                    #             print(f"Using fallback CSID for lactose: {first_lactose_hit.csid}")
+                    #     else:
+                    #         print("No ChemSpider results for fallback 'lactose'.")
+                    # except Exception as e:
+                    #     # print(f"ChemSpider search error for fallback 'lactose': {e}")
+                    #     pass
 
                 if thickness_float is None and sample_thickness is not None:
                     try:
@@ -260,27 +301,60 @@ class SpectrumUploadForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance = super().save(commit=False)
+        cs_instance = ChemSpider(RSC_API_KEY)
 
         material_name_val = self.cleaned_data.get('material_name')
+        final_metadata = getattr(self, 'final_metadata_from_view', {})
+
+        material_description_from_meta = final_metadata.get('description')
+
         if material_name_val:
             material, created = Material.objects.get_or_create(
                 name=material_name_val,
-                defaults={'description': f'Material created via spectrum upload: {material_name_val}'}
+                defaults={'description': material_description_from_meta or f'Material: {material_name_val}'}
             )
             instance.material = material
 
-        parsed_spectral_data = getattr(self, 'parsed_spectral_data_from_view', None)
-        final_metadata = getattr(self, 'final_metadata_from_view', None)
+            material_updated = False
 
+            if not created and material_description_from_meta and material.description != material_description_from_meta:
+                material.description = material_description_from_meta
+                material_updated = True
+
+            chemspider_csid = final_metadata.get('chemspider_csid')
+            # Check if image data is missing or if CSID changed (to allow updates)
+            if chemspider_csid:
+                try:
+                    image_bytes = cs_instance.get_image(chemspider_csid)
+                    if image_bytes:
+                        # Store bytes directly into BinaryField
+                        material.chemical_structure_image = image_bytes
+                        # Assuming the image from ChemSpider is PNG.
+                        # You might want to inspect image_bytes or get this info from API if possible.
+                        material.chemical_structure_image_content_type = 'image/png'
+                        material_updated = True
+                except Exception as e:
+                    print(f"Error fetching ChemSpider image for CSID {chemspider_csid}: {e}")
+                    pass  # Optionally log
+
+            if material_updated:  # Save material if description or image changed
+                # The material instance needs to be saved before the spectrum instance if commit is True
+                # and material was updated. If commit is False, this will be handled by the caller.
+                if commit:
+                    material.save()
+                elif not instance.pk:  # If spectrum is new, material needs saving if it was just created or updated
+                    material.save()
+
+        parsed_spectral_data = getattr(self, 'parsed_spectral_data_from_view', None)
         if parsed_spectral_data and isinstance(parsed_spectral_data, dict):
             instance.spectral_data = parsed_spectral_data
-            instance.frequency_data = parsed_spectral_data.get("frequency") or []
-            instance.refractive_index_data = parsed_spectral_data.get("refractive_index") or []
-            instance.absorption_coefficient_data = parsed_spectral_data.get("absorption_coefficient") or []
-            instance.raw_sample_data_t = parsed_spectral_data.get("raw_sample_data_t") or []
-            instance.raw_sample_data_p = parsed_spectral_data.get("raw_sample_data_p") or []
-            instance.raw_reference_data_t = parsed_spectral_data.get("raw_reference_data_t") or []
-            instance.raw_reference_data_p = parsed_spectral_data.get("raw_reference_data_p") or []
+            instance.frequency_data = parsed_spectral_data.get("frequency", [])
+            instance.refractive_index_data = parsed_spectral_data.get("refractive_index", [])
+            instance.absorption_coefficient_data = parsed_spectral_data.get("absorption_coefficient", [])
+            instance.raw_sample_data_t = parsed_spectral_data.get("raw_sample_data_t", [])
+            instance.raw_sample_data_p = parsed_spectral_data.get("raw_sample_data_p", [])
+            instance.raw_reference_data_t = parsed_spectral_data.get("raw_reference_data_t", [])
+            instance.raw_reference_data_p = parsed_spectral_data.get("raw_reference_data_p", [])
         else:
             instance.spectral_data = {}
             instance.frequency_data = []
@@ -296,6 +370,8 @@ class SpectrumUploadForm(forms.ModelForm):
         instance.absorption_coefficient_data_available = bool(instance.absorption_coefficient_data)
 
         if commit:
+            if material_updated and material.pk:
+                material.save()
             instance.save()
         return instance
 

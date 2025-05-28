@@ -2,10 +2,14 @@
 from pathlib import Path
 import os
 
+from dotenv import dotenv_values
+
+env_values = dotenv_values("spectra/backend.env")
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'your-very-long-and-random-secret-key-here'  #
+SECRET_KEY = env_values['SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True  # Set to False in production
 
@@ -83,7 +87,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # # Add STATICFILES_DIRS to tell Django where to find project-level static files
 STATICFILES_DIRS = [
-    BASE_DIR / "static", # If 'static' is in your project root (BASE_DIR)
+    BASE_DIR / "static",  # If 'static' is in your project root (BASE_DIR)
 ]
 
 # STATICFILES_FINDERS = [

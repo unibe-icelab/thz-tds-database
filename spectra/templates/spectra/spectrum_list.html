@@ -344,6 +344,19 @@
                 </tr>
             </thead>
             <tbody>
+             {% if selected_spectrum.material.chemical_structure_image %}
+                <tr>
+                    <td colspan="2" style="text-align: center; padding-top: 0.5em; padding-bottom: 0.5em;">
+                        <img src="{% url 'spectra:material_image' selected_spectrum.material.id %}" alt="Chemical structure of {{ selected_spectrum.material.name }}" style="max-width: 200px; max-height: 200px; border: 1px solid #ccc; display: block; margin-left: auto; margin-right: auto;">
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="2" style="text-align: center; padding-top: 0.5em; padding-bottom: 0.5em;">
+                        <p>No chemical structure image available for {{ selected_spectrum.material.name }}.</p>
+                    </td>
+                </tr>
+            {% endif %}
             {% for key, value in selected_spectrum.metadata.items %}
             <tr>
                 <th>{{ key|title }}</th>

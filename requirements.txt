@@ -7,3 +7,6 @@ numpy~=2.2.6
 git+https://github.com/dotTHzTAG/thzpy.git@add-adapted-blackman-window#egg=thzpy
 djangorestframework~=3.16.0
 channels~=4.2.2
+python-dotenv~=1.1.0
+chemspipy~=2.0.0
+Pillow~=10.4.0

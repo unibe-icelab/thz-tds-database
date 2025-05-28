@@ -97,9 +97,23 @@
     #plotly-plot-refidx, #plotly-plot-abscoeff {
         width: 90%;
         min-height: 300px;
-        max-height: 64vh;
+        max-height: 64vh; /* This might be too large if metadata table is also tall */
+        /* Consider reducing max-height if plots + metadata overflow */
         margin-bottom: 2vh;
     }
+     /* Adjust plot panel and plot heights if needed */
+    .plot-panel {
+        /* max-height: 75vh; /* Example: constrain overall height */
+    }
+    #plotly-plot-refidx {
+        /* max-height: 28vh; /* Keep individual plot heights manageable */
+        height: 28vh; /* Use fixed height or ensure max-height works with flex container */
+    }
+    #plotly-plot-abscoeff {
+        /* max-height: 28vh; */
+        height: 28vh;
+    }
+
 
     @media (max-width: 900px) {
         .spectra-container {
@@ -117,13 +131,14 @@
         .plot-panel {
             width: 100%;
             min-height: 0;
-            max-height: 60vh; /* Adjusted for potentially more metadata */
+            /* max-height: 60vh; /* Adjusted for potentially more metadata */
             overflow-y: auto;
         }
 
         #plotly-plot-refidx, #plotly-plot-abscoeff {
             width: 98%;
-            max-height: 40vh;
+            /* max-height: 40vh; */ /* Adjust if needed */
+            height: 40vh;
             min-height: 160px;
         }
     }
@@ -254,8 +269,6 @@
         width: 32px;  /* Desired width of your icon */
         height: 32px; /* Desired height of your icon */
         display: block; /* Remove extra space below inline images */
-        /* For SVGs, you might want to control fill color via CSS if the SVG is designed for it */
-        /* fill: #5a6b8a; */ /* Example: if your SVG uses currentColor */
     }
 
     .spectra-list-panel a.download-btn:hover {
@@ -263,14 +276,28 @@
     }
 
     .spectra-list-panel a.download-btn:hover .download-icon {
-        fill: #1a2d46;
+        /* fill: #1a2d46; /* If SVG and uses fill */
+    }
+    .plot-controls { /* Style for the button container */
+        text-align: center;
+        padding: 10px 0;
+        background: #1a2d46; /* Match plot panel background */
     }
 
-    /* Ensure the main link doesn't visually clash if it also has background on hover/select */
-    .spectra-list-panel a.selected .download-btn,
-    .spectra-list-panel a:hover .download-btn {
-        /* Optional: Adjust download button style when parent link is hovered/selected if needed */
+    .plot-controls button { /* Basic styling for the button */
+        color: #fff;
+        background-color: #337ab7; /* A standard blue */
+        border-color: #2e6da4;
+        padding: 6px 12px;
+        font-size: 14px;
+        border-radius: 4px;
+        cursor: pointer;
     }
+    .plot-controls button:hover {
+        background-color: #286090;
+        border-color: #204d74;
+    }
+
 </style>
 <details class="filter-dropdown" {% if request.GET %}open{% endif %}>
     <summary class="filter-summary">Filter Spectra</summary>
@@ -309,7 +336,7 @@
     <div class="spectra-list-panel">
         <div class="spectra-list-header">Spectra</div>
         <ul>
-            {% for spectrum_item in spectra %} {# Renamed to avoid conflict if selected_spectrum is also named spectrum #}
+            {% for spectrum_item in spectra %}
             <li>
                 <a href="{% url 'spectra:spectrum_detail' spectrum_item.pk %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
                    class="{% if selected_spectrum and selected_spectrum.pk == spectrum_item.pk %}selected{% endif %}">
@@ -333,10 +360,15 @@
         </ul>
     </div>
     <div class="plot-panel" style="flex-direction:column;">
+        <!-- Button to toggle x-axis unit -->
+        <div class="plot-controls">
+            <button id="toggle-xaxis-unit">Switch to Wavenumber (cm⁻¹)</button>
+        </div>
+
         <div id="plotly-plot-refidx" style="width:90%;height:28vh;margin-bottom:2vh;"></div>
         <div id="plotly-plot-abscoeff" style="width:90%;height:28vh;"></div>
 
-        {% if selected_spectrum and selected_spectrum.metadata %} {# Use selected_spectrum.metadata directly #}
+        {% if selected_spectrum and selected_spectrum.metadata %}
         <table class="meta-table">
             <thead>
                  <tr>
@@ -350,7 +382,7 @@
                         <img src="{% url 'spectra:material_image' selected_spectrum.material.id %}" alt="Chemical structure of {{ selected_spectrum.material.name }}" style="max-width: 200px; max-height: 200px; border: 1px solid #ccc; display: block; margin-left: auto; margin-right: auto;">
                     </td>
                 </tr>
-            {% else %}
+            {% elif selected_spectrum.metadata %} {# Show "no image" only if there's other metadata to show #}
                 <tr>
                     <td colspan="2" style="text-align: center; padding-top: 0.5em; padding-bottom: 0.5em;">
                         <p>No chemical structure image available for {{ selected_spectrum.material.name }}.</p>
@@ -380,18 +412,44 @@
 </div>
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
-    window.addEventListener('resize', function () {
-        if (document.getElementById('plotly-plot-refidx')) {
-            Plotly.Plots.resize('plotly-plot-refidx');
-        }
-        if (document.getElementById('plotly-plot-abscoeff')) {
-            Plotly.Plots.resize('plotly-plot-abscoeff');
-        }
-    });
-
+    // Plot data from Django
     var fig_refidx_json = {{ plotly_fig_refidx|safe|default:'null' }};
     var fig_abscoeff_json = {{ plotly_fig_abscoeff|safe|default:'null' }};
 
+    // --- X-axis toggle logic ---
+    let originalFrequenciesRefidx = null;
+    let originalFrequenciesAbscoeff = null;
+    let currentXAxisUnit = 'thz'; // 'thz' or 'cm-1'
+    const THZ_TO_CM_INV = 33.3564095198152; // Conversion factor: 1 THz to cm^-1
+
+    function storeOriginalFrequencies() {
+        if (fig_refidx_json && fig_refidx_json.data) {
+            // Store a deep copy of x-data for each trace
+            originalFrequenciesRefidx = fig_refidx_json.data.map(trace => (trace.x ? [...trace.x] : []));
+        } else {
+            originalFrequenciesRefidx = null;
+        }
+        if (fig_abscoeff_json && fig_abscoeff_json.data) {
+            originalFrequenciesAbscoeff = fig_abscoeff_json.data.map(trace => (trace.x ? [...trace.x] : []));
+        } else {
+            originalFrequenciesAbscoeff = null;
+        }
+    }
+
+    // Call after fig_..._json are defined from template
+    storeOriginalFrequencies();
+    // --- End X-axis toggle logic ---
+
+    window.addEventListener('resize', function () {
+        if (document.getElementById('plotly-plot-refidx') && typeof Plotly !== 'undefined' && Plotly.Plots) {
+            try { Plotly.Plots.resize('plotly-plot-refidx'); } catch(e) { console.error("Error resizing refidx plot:", e); }
+        }
+        if (document.getElementById('plotly-plot-abscoeff') && typeof Plotly !== 'undefined' && Plotly.Plots) {
+            try { Plotly.Plots.resize('plotly-plot-abscoeff'); } catch(e) { console.error("Error resizing abscoeff plot:", e); }
+        }
+    });
+
+    // Initial plot rendering
     if (fig_refidx_json && fig_refidx_json.data && fig_refidx_json.layout) {
         Plotly.newPlot('plotly-plot-refidx', fig_refidx_json.data, fig_refidx_json.layout, {responsive: true});
     } else if (document.getElementById('plotly-plot-refidx')) {
@@ -405,10 +463,55 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        // Scroll selected item into view
         var selected = document.querySelector('.spectra-list-panel a.selected');
         if (selected) {
           selected.scrollIntoView({ behavior: 'auto', block: 'nearest' });
         }
+
+        // --- X-axis toggle button setup ---
+        const toggleButton = document.getElementById('toggle-xaxis-unit');
+        if (toggleButton) {
+            toggleButton.addEventListener('click', function() {
+                // Check if there's any plot data to work with
+                const hasRefidxData = originalFrequenciesRefidx && originalFrequenciesRefidx.length > 0 && originalFrequenciesRefidx.some(trace => trace.length > 0);
+                const hasAbscoeffData = originalFrequenciesAbscoeff && originalFrequenciesAbscoeff.length > 0 && originalFrequenciesAbscoeff.some(trace => trace.length > 0);
+
+                if (!hasRefidxData && !hasAbscoeffData) {
+                    console.log("No plot data with x-values to update for x-axis toggle.");
+                    return;
+                }
+
+                if (currentXAxisUnit === 'thz') {
+                    // Convert to Wavenumber
+                    if (hasRefidxData) {
+                        const newXData = originalFrequenciesRefidx.map(freq_trace => freq_trace.map(f => f * THZ_TO_CM_INV));
+                        Plotly.update('plotly-plot-refidx', { x: newXData });
+                        Plotly.relayout('plotly-plot-refidx', {'xaxis.title.text': 'Wavenumber (cm⁻¹)'});
+                    }
+                    if (hasAbscoeffData) {
+                        const newXData = originalFrequenciesAbscoeff.map(freq_trace => freq_trace.map(f => f * THZ_TO_CM_INV));
+                        Plotly.update('plotly-plot-abscoeff', { x: newXData });
+                        Plotly.relayout('plotly-plot-abscoeff', {'xaxis.title.text': 'Wavenumber (cm⁻¹)'});
+                    }
+                    currentXAxisUnit = 'cm-1';
+                    toggleButton.textContent = 'Switch to Frequency (THz)';
+                } else {
+                    // Convert back to Frequency
+                    if (hasRefidxData) {
+                        Plotly.update('plotly-plot-refidx', { x: originalFrequenciesRefidx });
+                        Plotly.relayout('plotly-plot-refidx', {'xaxis.title.text': 'Frequency (THz)'});
+                    }
+                    if (hasAbscoeffData) {
+                        Plotly.update('plotly-plot-abscoeff', { x: originalFrequenciesAbscoeff });
+                        Plotly.relayout('plotly-plot-abscoeff', {'xaxis.title.text': 'Frequency (THz)'});
+                    }
+                    currentXAxisUnit = 'thz';
+                    toggleButton.textContent = 'Switch to Wavenumber (cm⁻¹)';
+                }
+            });
+        }
+        // --- End X-axis toggle button setup ---
     });
 </script>
 {% endblock %}

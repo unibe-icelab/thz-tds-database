@@ -143,6 +143,18 @@
             height: 40vh;
             min-height: 160px;
         }
+
+        .plot-controls {
+            display: flex; /* Use flex for easier alignment */
+            flex-direction: column; /* Stack items vertically */
+            align-items: flex-start; /* Align items to the left */
+            padding-left: 5%; /* Indent slightly to align with plots */
+            padding-right: 5%;
+        }
+        .plot-controls label {
+            margin: 5px 0; /* Add vertical spacing */
+            display: block; /* Ensure labels take full width if needed */
+        }
     }
 
     .meta-table {
@@ -250,6 +262,26 @@
         margin-top: 8px;
     }
 
+    .filter-action-button {
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        padding: 10px 22px;
+        border-radius: 4px;
+        font-size: 1em; /* Ensure consistent font size */
+        cursor: pointer;
+        transition: background-color 0.2s;
+        text-decoration: none; /* For <a> tags styled as buttons */
+        display: inline-block; /* For <a> tags to respect padding */
+        text-align: center; /* For <a> tags */
+        line-height: normal; /* Ensure consistent line height */
+    }
+
+    .filter-action-button:hover {
+        background-color: #0056b3;
+        color: #fff; /* Ensure text color remains white on hover */
+    }
+
     .spectra-list-panel a.download-btn {
         position: absolute;
         top: 14px; /* Adjust to vertically align */
@@ -326,8 +358,10 @@
             {{ filter_form.meta_value }}
         </div>
         <div class="filter-actions">
-            <button type="submit" class="btn btn-primary" style="padding: 8px 18px;">Filter</button>
-            <a href="{% url 'spectra:spectrum_list' %}" class="btn btn-secondary" style="padding: 8px 18px;">Reset</a>
+            <button type="submit" class="filter-action-button">Filter</button>
+        </div>
+        <div class="filter-actions">
+            <a href="{% url 'spectra:spectrum_list' %}" class="filter-action-button">Reset</a>
         </div>
     </form>
 </details>
@@ -361,9 +395,9 @@
     <div class="plot-panel" style="flex-direction:column;">
         <!-- Radio buttons to select x-axis unit -->
         <div class="plot-controls" id="xaxis-unit-selector">
-            <label><input type="radio" name="xaxisUnit" value="thz" checked> Frequency (THz)</label>
-            <label><input type="radio" name="xaxisUnit" value="cm-1"> Wavenumber (cm⁻¹)</label>
-            <label><input type="radio" name="xaxisUnit" value="mm"> Wavelength (mm)</label>
+            <label><input type="radio" name="xaxisUnit" value="thz" checked> Frequency [THz]</label>
+            <label><input type="radio" name="xaxisUnit" value="cm-1"> Wavenumber [cm⁻¹]</label>
+            <label><input type="radio" name="xaxisUnit" value="mm"> Wavelength [mm]</label>
         </div>
 
         <div id="plotly-plot-refidx" style="width:90%;height:28vh;margin-bottom:2vh;"></div>
@@ -428,12 +462,12 @@
         if (fig_refidx_json && fig_refidx_json.data) {
             originalFrequenciesRefidx = fig_refidx_json.data.map(trace => (trace.x ? [...trace.x] : []));
         } else {
-            originalFrequenciesRefidx = null;
+            originalFrequenciesRefidx = [];
         }
         if (fig_abscoeff_json && fig_abscoeff_json.data) {
             originalFrequenciesAbscoeff = fig_abscoeff_json.data.map(trace => (trace.x ? [...trace.x] : []));
         } else {
-            originalFrequenciesAbscoeff = null;
+            originalFrequenciesAbscoeff = [];
         }
     }
 
@@ -442,19 +476,17 @@
     function convertXAxisData(originalFreqs, targetUnit) {
         if (!originalFreqs) return null;
         return originalFreqs.map(trace => {
-            if (!trace || trace.length === 0) return [];
+            if (!trace || trace.length === 0) return []; // Handle empty or null traces
             if (targetUnit === 'cm-1') {
                 return trace.map(f => f * THZ_TO_CM_INV);
             } else if (targetUnit === 'mm') {
-                // For wavelength, reverse the order of data points if you want to maintain
-                // a "low to high" visual progression similar to frequency.
-                // However, standard is to plot actual wavelength values.
-                // λ = c/f. If f=0, λ is Infinity.
-                return trace.map(f => f === 0 ? Infinity : C_MM_PER_PICOSECOND / f);
+                return trace.map(f => f === 0 ? Infinity : C_MM_PER_PICOSECOND / f); // Avoid division by zero
             }
             return [...trace]; // Default to THz (original)
         });
     }
+
+    const plotMargins = { l: 30, r: 10, b: 30, t: 30, pad: 0 };
 
     window.addEventListener('resize', function () {
         if (document.getElementById('plotly-plot-refidx') && typeof Plotly !== 'undefined' && Plotly.Plots) {
@@ -466,12 +498,20 @@
     });
 
     if (fig_refidx_json && fig_refidx_json.data && fig_refidx_json.layout) {
+        if (!fig_refidx_json.layout.margin) {
+            fig_refidx_json.layout.margin = {};
+        }
+        Object.assign(fig_refidx_json.layout.margin, plotMargins);
         Plotly.newPlot('plotly-plot-refidx', fig_refidx_json.data, fig_refidx_json.layout, {responsive: true});
     } else if (document.getElementById('plotly-plot-refidx')) {
         document.getElementById('plotly-plot-refidx').innerHTML = '<p style=\"color:white;text-align:center;padding-top:20%;\">Refractive index data not available or not selected.</p>';
     }
 
     if (fig_abscoeff_json && fig_abscoeff_json.data && fig_abscoeff_json.layout) {
+        if (!fig_abscoeff_json.layout.margin) {
+            fig_abscoeff_json.layout.margin = {};
+        }
+        Object.assign(fig_abscoeff_json.layout.margin, plotMargins);
         Plotly.newPlot('plotly-plot-abscoeff', fig_abscoeff_json.data, fig_abscoeff_json.layout, {responsive: true});
     } else if (document.getElementById('plotly-plot-abscoeff')) {
          document.getElementById('plotly-plot-abscoeff').innerHTML = '<p style=\"color:white;text-align:center;padding-top:20%;\">Absorption coefficient data not available or not selected.</p>';
@@ -503,15 +543,13 @@
                 let xaxisLayoutUpdate = {};
 
                 if (selectedUnit === 'thz') {
-                    newXLabel = 'Frequency (THz)';
+                    newXLabel = 'Frequency [THz]';
                     xaxisLayoutUpdate = {'xaxis.title.text': newXLabel, 'xaxis.autorange': true};
                 } else if (selectedUnit === 'cm-1') {
                     newXLabel = 'Wavenumber (cm⁻¹)';
                     xaxisLayoutUpdate = {'xaxis.title.text': newXLabel, 'xaxis.autorange': true};
                 } else { // selectedUnit === 'mm'
                     newXLabel = 'Wavelength (mm)';
-                    // For wavelength, data often appears "reversed" compared to frequency.
-                    // Default autorange should handle this. If specific range/direction is needed, adjust here.
                     xaxisLayoutUpdate = {'xaxis.title.text': newXLabel, 'xaxis.autorange': true};
                 }
 

@@ -17,7 +17,7 @@
 
         header {
             background-color: #f4f4f4;
-            padding: 10px;
+            padding: 10px; /* Padding for the overall header area */
             margin-bottom: 20px;
             position: sticky;
             top: 0;
@@ -25,41 +25,152 @@
             border-bottom: 2px solid #000;
         }
 
-        nav ul {
-            list-style-type: none;
-            padding: 0;
-            display: flex; /* Added for alignment */
-            align-items: center; /* Added for alignment */
+        /* Styles for the navigation container itself */
+        nav.container {
+            display: flex;
+            /* justify-content: space-between; /* Changed for desktop layout */
+            align-items: center;
+            position: relative; /* For positioning the dropdown menu */
+            max-width: 1200px; /* Match .container class for content alignment */
+            margin: 0 auto; /* Center nav content if header is full width */
+            padding: 0 0px; /* No horizontal padding if max-width handles it */
         }
 
-        nav ul li {
-            display: inline-flex; /* Changed for alignment */
-            align-items: center; /* Added for alignment */
+        .nav-brand-link {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            color: #333;
+            margin-right: 20px; /* Added space between brand and nav links */
+        }
+
+        .header-icon { /* Existing style, ensure it works with nav-brand-link */
+            height: 24px;
+            width: auto;
+        }
+
+        .mobile-nav-toggle {
+            display: none; /* Hidden by default, shown on mobile */
+            background: none;
+            border: none;
+            font-size: 1.8rem; /* Larger hamburger icon */
+            color: #333;
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+            z-index: 1001; /* Ensure toggle is above dropdown if overlapping */
+        }
+
+        ul.nav-links {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            flex-grow: 1; /* Allow ul to grow and push GitHub icon to the right */
+        }
+
+        ul.nav-links li {
+            display: inline-flex; /* Keep for desktop */
+            align-items: center;
             margin-right: 15px;
         }
 
-        /* Remove margin-right for the last item if it's the GitHub icon pushed to the right */
-        nav ul li:last-child {
-            margin-right: 0;
+        ul.nav-links li:last-child {
+             margin-right: 0;
         }
 
+        ul.nav-links li.nav-github-item { /* For the GitHub icon li */
+            margin-left: auto; /* Pushes it to the right on desktop */
+        }
 
-        nav a {
+        ul.nav-links a,
+        ul.nav-links .nav-form button[type="submit"] {
             text-decoration: none;
             color: #333;
+            padding: 0; /* Minimal padding for desktop inline items */
         }
 
-        nav a:hover {
+        ul.nav-links .nav-form button[type="submit"] {
+            background: none;
+            border: none;
+            font: inherit; /* Inherit font from parent */
+            cursor: pointer;
+            margin:0; /* Reset margin */
+        }
+
+        ul.nav-links a:hover,
+        ul.nav-links .nav-form button[type="submit"]:hover {
             color: #007bff;
         }
 
-        .header-icon {
-            height: 24px; /* Adjust size as needed */
-            width: auto;
-            margin-right: 8px; /* Space between icon and "Home" */
+        /* --- Mobile Styles for Navigation --- */
+        @media (max-width: 768px) { /* Breakpoint for mobile view */
+            nav.container {
+                justify-content: space-between; /* Ensure brand and hamburger are spaced apart */
+            }
+            .nav-brand-link {
+                margin-right: 0; /* Reset margin for mobile, space-between handles spacing */
+            }
+
+            .mobile-nav-toggle {
+                display: block; /* Show hamburger button */
+            }
+
+            ul.nav-links {
+                display: none; /* Hide menu by default on mobile */
+                flex-direction: column;
+                position: absolute;
+                top: 100%; /* Position below the nav container (relative to nav.container) */
+                left: 0;
+                width: 100%;
+                background-color: #f4f4f4; /* Match header background */
+                border-top: 1px solid #e0e0e0;
+                box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+                z-index: 999;
+                align-items: flex-start; /* Align items to the left */
+                flex-grow: 0; /* Reset flex-grow for mobile dropdown */
+            }
+
+            ul.nav-links.active { /* Class to show the menu */
+                display: flex;
+            }
+
+            ul.nav-links li {
+                display: block; /* Each item takes full width */
+                width: 100%;
+                margin-right: 0; /* Reset margin */
+                margin-left: 0; /* Reset margin */
+            }
+
+            ul.nav-links li.nav-github-item {
+                margin-left: 0; /* Reset margin-left: auto for mobile */
+            }
+
+            ul.nav-links a,
+            ul.nav-links .nav-form button[type="submit"] {
+                display: block; /* Make links/buttons block */
+                padding: 12px 20px; /* Generous padding for tapping */
+                width: 100%;
+                box-sizing: border-box;
+                border-bottom: 1px solid #e7e7e7;
+                color: #333;
+                text-align: left; /* Align text to left */
+            }
+
+            ul.nav-links .nav-form { /* Ensure form takes full width */
+                width: 100%;
+                display: block;
+            }
+
+            ul.nav-links li:last-child a,
+            ul.nav-links li:last-child .nav-form button[type="submit"] {
+                border-bottom: none; /* No border for the very last item in dropdown */
+            }
         }
 
-        .container {
+
+        .container { /* General container style from before */
             max-width: 1200px;
             margin: auto;
             padding: 0 20px;
@@ -124,23 +235,7 @@
             border: 1px solid #ffeeba;
         }
 
-        nav button[type="submit"] {
-            background: none;
-            border: none;
-            padding: 0;
-            margin: 0;
-            font: inherit;
-            color: #333;
-            cursor: pointer;
-            text-decoration: none;
-        }
-
-        nav a:hover,
-        nav button[type="submit"]:hover {
-            color: #007bff;
-            background-color: transparent;
-        }
-
+        /* Styles for form-container, login-form, token-container from original base.html */
         .form-container {
             background: #fff;
             border: 1px solid #ddd;
@@ -183,12 +278,11 @@
             background: #0056b3;
         }
 
-        /* Styles for token display */
         .token-container {
             display: flex;
             align-items: center;
             margin-bottom: 10px;
-            max-width: 500px; /* Or adjust as needed */
+            max-width: 500px;
         }
 
         .token-container input[readonly] {
@@ -208,7 +302,7 @@
             cursor: pointer;
         }
 
-        .token-container button.secondary { /* Example for a secondary button style */
+        .token-container button.secondary {
             background-color: #6c757d;
             color: white;
             border-color: #6c757d;
@@ -219,7 +313,7 @@
             border-color: #545b62;
         }
 
-        .token-container button.outline { /* Example for an outline button style */
+        .token-container button.outline {
             background-color: transparent;
             color: #007bff;
             border: 1px solid #007bff;
@@ -236,30 +330,30 @@
 <body>
 <header>
     <nav class="container">
-        <ul>
-            <li>
-                <a href="{% url 'spectra:home' %}">
-                    <img src="{% static 'images/header.png' %}" alt="Icon" class="header-icon">
-                </a>
-            </li>
+        <a href="{% url 'spectra:home' %}" class="nav-brand-link">
+            <img src="{% static 'images/header.png' %}" alt="Icon" class="header-icon">
+        </a>
+
+        <button class="mobile-nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="nav-menu-list">
+            <i class="fas fa-bars"></i> <!-- Hamburger icon -->
+        </button>
+
+        <ul id="nav-menu-list" class="nav-links">
+            <li><a href="{% url 'spectra:home' %}">Home</a></li>
             <li><a href="{% url 'spectra:spectrum_list' %}">Spectra List</a></li>
             <li><a href="{% url 'spectra:upload_spectrum' %}">Upload Spectrum</a></li>
             {% if user.is_authenticated %}
             <li>
-                <form action="{% url 'logout' %}?next={{ request.path }}" method="post" style="display:inline;">
+                <form action="{% url 'logout' %}?next={{ request.path }}" method="post" class="nav-form">
                     {% csrf_token %}
-                    <button type="submit">
-                        Logout ({{ user.username }})
-                    </button>
+                    <button type="submit">Logout ({{ user.username }})</button>
                 </form>
             </li>
             {% else %}
-            <li>
-                <a href="{% url 'login' %}?next={{ request.path }}">Login</a>
-            </li>
+            <li><a href="{% url 'login' %}?next={{ request.path }}">Login</a></li>
             {% endif %}
             <li><a href="{% url 'admin:index' %}">Admin Login</a></li>
-            <li style="margin-left: auto;">
+            <li class="nav-github-item"> <!-- Class for GitHub item -->
                 <a href="https://github.com/unibe-icelab/thz-tds-database"
                    role="button"
                    title="View source on GitHub"
@@ -285,8 +379,47 @@
 </main>
 
 <footer>
+    <br>
     <center class="container">&copy; {% now "Y" %} Space Research and Planetary Sciences, University of Bern</center>
+    <br>
 </footer>
-{% block scripts_extra %}{% endblock %}
+
+{% block scripts_extra %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
+    const navMenu = document.getElementById('nav-menu-list');
+
+    if (mobileNavToggle && navMenu) {
+        mobileNavToggle.addEventListener('click', function() {
+            navMenu.classList.toggle('active');
+            const isExpanded = navMenu.classList.contains('active');
+            mobileNavToggle.setAttribute('aria-expanded', isExpanded);
+
+            // Change hamburger to X icon and back
+            if (isExpanded) {
+                mobileNavToggle.innerHTML = '<i class="fas fa-times"></i>'; // X icon
+            } else {
+                mobileNavToggle.innerHTML = '<i class="fas fa-bars"></i>'; // Hamburger icon
+            }
+        });
+
+        navMenu.querySelectorAll('a, .nav-form button[type="submit"]').forEach(item => {
+            item.addEventListener('click', (event) => {
+                if (navMenu.classList.contains('active')) {
+                    if (item.tagName === 'A' && item.getAttribute('href') && item.getAttribute('href') !== '#') {
+                        // If it's a real navigation link, the menu will close on page load.
+                    } else {
+                        navMenu.classList.remove('active');
+                        mobileNavToggle.setAttribute('aria-expanded', 'false');
+                        mobileNavToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                    }
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
 </body>
 </html>

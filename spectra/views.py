@@ -87,8 +87,8 @@ def spectrum_list_or_detail(request, pk=None):
             fig_refidx.add_trace(go.Scatter(x=freq, y=refidx, mode='lines', name=spectrum.material.name))
             fig_refidx.update_layout(
                 title="Refractive Index",
-                xaxis_title="Frequency",
-                yaxis_title="Refractive Index (n)",
+                xaxis_title="Frequency [THz]",
+                yaxis_title="n [-]",
                 **base_layout
             )
         else:
@@ -101,8 +101,8 @@ def spectrum_list_or_detail(request, pk=None):
             fig_abscoeff.add_trace(go.Scatter(x=freq, y=abscoeff, mode='lines', name=spectrum.material.name))
             fig_abscoeff.update_layout(
                 title="Absorption Coefficient",
-                xaxis_title="Frequency",
-                yaxis_title="Absorption Coefficient",
+                xaxis_title="Frequency [THz]",
+                yaxis_title='α [cm⁻¹]',
                 **base_layout
             )
         else:

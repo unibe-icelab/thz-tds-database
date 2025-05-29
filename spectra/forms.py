@@ -161,19 +161,20 @@ class SpectrumUploadForm(forms.ModelForm):
                     except (ValueError, TypeError):
                         # Invalid format in metadata, thickness_float remains None.
                         pass
-                description = metadata_dict.get("description")
+                if metadata_dict.get("content") is not None:
+                    content = metadata_dict.get("content")
                 if description:
                     try:
-                        search_results = cs.search(description)  # Use the variable 'description'
+                        search_results = cs.search(content)  # Use the variable 'content'
                         if search_results and search_results and search_results.count > 0:
                             first_hit = search_results[0]
                             if hasattr(first_hit, 'csid'):
                                 metadata_dict['chemspider_csid'] = first_hit.csid
-                                # print(f"Found CSID for '{description}': {first_hit.csid}")
+                                # print(f"Found CSID for '{content}': {first_hit.csid}")
                         # else:
-                        # print(f"No ChemSpider results for '{description}'.")
+                        # print(f"No ChemSpider results for '{content}'.")
                     except Exception as e:
-                        # print(f"ChemSpider search error for '{description}': {e}")
+                        # print(f"ChemSpider search error for '{content}': {e}")
                         pass  # Optionally log error
                 else:
                     # Fallback to lactose if no description, or remove this block if not needed

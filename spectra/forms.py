@@ -120,7 +120,7 @@ class SpectrumUploadForm(forms.ModelForm):
                 # Extract and sanitize full metadata
                 dotthz_meta = measurement.meta_data
                 if material_name_from_form:
-                    metadata_dict = {"description": material_name_from_form}
+                    metadata_dict = {"content": material_name_from_form}
                 else:
                     metadata_dict = {}
 
@@ -163,7 +163,6 @@ class SpectrumUploadForm(forms.ModelForm):
                         pass
                 if metadata_dict.get("content") is not None:
                     content = metadata_dict.get("content")
-                if description:
                     try:
                         search_results = cs.search(content)  # Use the variable 'content'
                         if search_results and search_results and search_results.count > 0:
@@ -230,7 +229,7 @@ class SpectrumUploadForm(forms.ModelForm):
                 )
                 buffer = uniform_slab(
                     thickness_float, processed_sample, processed_reference,
-                    upsampling=3, min_frequency=0.2, max_frequency=3, all_optical_constants=True
+                    upsampling=3, min_frequency=0.2, max_frequency=5, all_optical_constants=True
                 )
 
                 expected_keys = ["frequency", "refractive_index", "absorption_coefficient"]

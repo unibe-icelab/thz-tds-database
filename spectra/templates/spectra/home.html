@@ -5,7 +5,7 @@
 {% block content %}
 <style>
     .content-box {
-        max-width: 680px; /* Wider for home page content */
+        max-width: 680px;
         margin: 48px auto 0 auto;
         background: #f4f6fa;
         border-radius: 12px;
@@ -14,7 +14,7 @@
         border: 1.5px solid #e0e4ea;
     }
 
-    .content-box h2 { /* Main heading for the box */
+    .content-box h2 {
         font-size: 2em;
         color: #1a2d46;
         margin-bottom: 18px;
@@ -22,15 +22,15 @@
         letter-spacing: 0.5px;
     }
 
-    .content-box h4 { /* Sub-headings */
-        font-size: 1.3em; /* Slightly larger for section titles */
+    .content-box h4 {
+        font-size: 1.3em;
         color: #1a2d46;
-        margin-top: 28px; /* More space above section titles */
+        margin-top: 28px;
         margin-bottom: 15px;
         font-weight: 600;
     }
 
-    .content-box label { /* Though not many labels here, good for consistency */
+    .content-box label {
         font-size: 1.1em;
         color: #1a2d46;
         font-weight: 600;
@@ -38,25 +38,15 @@
         display: block;
     }
 
-    .content-box input[type="text"] { /* For API token input */
-        width: 100%;
+
+    .content-box button,
+    .content-box a.btn {
         font-size: 1.1em;
         padding: 12px 14px;
         border-radius: 7px;
-        border: 1.5px solid #bfc8da;
-        margin-bottom: 10px;
-        background: #fff;
-        color: #1a2d46;
-        box-sizing: border-box;
-    }
-
-    .content-box button,
-    .content-box a.btn { /* General button style */
-        font-size: 1.1em;
-        padding: 12px 28px;
-        border-radius: 7px;
-        margin-top: 10px;
-        margin-right: 8px;
+        margin-top: 2px;
+        margin-bottom: 2px;
+        margin-right: 4px;
         font-weight: 600;
         letter-spacing: 0.5px;
         text-decoration: none;
@@ -84,6 +74,8 @@
         color: #1a2d46;
         border-color: #e0e4ea;
         transition: background 0.2s, border-color 0.2s;
+        margin-top: 0;
+        margin-right: 0;
     }
 
     .content-box .btn-secondary:hover {
@@ -91,32 +83,95 @@
         border-color: #bfc8da;
     }
 
-    .content-box .token-container {
+    /* Styles for API Token row */
+    .api-token-row {
         display: flex;
         align-items: center;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
     }
 
-    .content-box .token-container input[type="text"] {
+    .token-input-wrapper {
+        display: flex;
+        align-items: center;
+        border: 1.5px solid #bfc8da;
+        border-radius: 7px;
+        background-color: #fff;
+        flex-grow: 1; /* Wrapper takes available space */
+        overflow: hidden; /* Ensures children conform to border-radius */
+        min-height: 48px; /* Ensure wrapper has a minimum height consistent with input padding + font */
+    }
+
+    .token-input-wrapper input[type="text"] {
         flex-grow: 1;
-        margin-right: 8px;
-        margin-bottom: 0; /* Override general margin */
+        border: none;
+        outline: none;
+        padding: 12px 14px;
+        background-color: transparent;
+        font-size: 1.1em;
+        color: #1a2d46;
+        min-width: 0; /* For flex behavior */
+        margin: 0; /* Remove default margins */
     }
 
-    .content-box .token-container button {
-        margin-top: 0; /* Align with input */
-        padding: 12px 14px; /* Slightly smaller padding for these utility buttons */
+    .copy-status-message {
+        margin-left: 8px;
+        margin-right: 5px;
+        font-size: 0.95em;
+        white-space: nowrap;
+        color: #28a745; /* Success color, JS handles text and display */
     }
 
-    .content-box p { /* Adjust paragraph spacing if needed */
+    .copy-token-btn {
+        background-color: transparent;
+        border: none;
+        color: #5a6b8a;
+        cursor: pointer;
+        padding: 8px 10px; /* Padding for the button content */
+        display: flex;
+        align-items: center; /* Vertically center icon in button */
+        justify-content: center; /* Horizontally center icon in button */
+        font-size: 1em;
+        transition: background-color 0.2s, color 0.2s;
+        border-radius: 4px;
+        margin-right: 4px; /* Space from wrapper edge */
+        /* align-self: stretch; */ /* Removed this line */
+        height: fit-content; /* Allow button to size to its content + padding */
+    }
+
+    .copy-token-btn:hover {
+        background-color: #e9eef6;
+        color: #1a2d46;
+    }
+
+    .copy-token-btn .fas,
+    .copy-token-btn .far {
+        font-size: 1.2em; /* Icon size */
+        line-height: 1; /* Ensure icon is compact */
+    }
+
+    .copy-token-btn .copy-icon-success .fas {
+        color: #28a745;
+    }
+
+    .api-token-row .regenerate-token-form {
+        margin-left: 10px;
+    }
+
+    .api-token-row .regenerate-token-btn {
+        padding: 10px 12px;
+        line-height: 1;
+    }
+    /* End of styles for API Token row */
+
+    .content-box p {
         margin-bottom: 1rem;
         line-height: 1.6;
     }
 
     .content-box p > button,
-    .content-box p > a.btn { /* Buttons directly in paragraphs */
+    .content-box p > a.btn {
         margin-top: 5px;
-        margin-bottom: 10px; /* Space after button in p */
+        margin-bottom: 10px;
     }
 
     .content-box hr {
@@ -127,7 +182,7 @@
         margin-bottom: 25px;
     }
 
-    .content-box small { /* Style for help text */
+    .content-box small {
         color: #5a6b8a;
         font-size: 0.98em;
     }
@@ -144,13 +199,18 @@
     <p>Make sure that only the primary pulse is included in each trace.</p>
     <h4>Your API Token:</h4>
     {% if api_key %}
-    <div class="token-container">
-        <input type="text" value="{{ api_key }}" id="apiToken" readonly aria-label="API Token">
-        <button onclick="copyTokenToClipboard()" class="secondary" style="margin-right: 5px;">Copy</button>
-        <form action="{% url 'spectra:regenerate_token' %}" method="post" style="display: inline;">
+    <div class="api-token-row">
+        <div class="token-input-wrapper">
+            <input type="text" value="{{ api_key }}" id="apiToken" readonly aria-label="API Token">
+            <span class="copy-status-message" style="display: none;"></span> {# Message set by JS #}
+            <button type="button" onclick="copyTokenToClipboard()" class="copy-token-btn" aria-label="Copy API token">
+                <span class="copy-icon-default"><i class="far fa-copy"></i></span>
+                <span class="copy-icon-success" style="display: none;"><i class="fas fa-check"></i></span>
+            </button>
+        </div>
+        <form action="{% url 'spectra:regenerate_token' %}" method="post" class="regenerate-token-form">
             {% csrf_token %}
-            {% csrf_token %}
-            <button type="submit" class="btn btn-secondary" title="Generate New Token" aria-label="Generate New Token">
+            <button type="submit" class="btn btn-secondary regenerate-token-btn" title="Generate New Token" aria-label="Generate New Token">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"
                      style="vertical-align: middle;">
                     <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
@@ -159,8 +219,7 @@
             </button>
         </form>
     </div>
-    <small id="copyStatus" style="display: none; color: green; margin-left: 5px;">Copied!</small>
-    <p><small>Use this token to authenticate API requests.</small></p>
+    <small style="display: block; margin-top: 5px;">Use this token to authenticate API requests.</small>
     {% else %}
     <p>No API token found. One will be generated for you if needed, or you can try logging out and back in.</p>
     {% endif %}
@@ -192,37 +251,48 @@
 {% endblock %}
 
 {% block scripts_extra %}
-{{ block.super }} {# Keep existing scripts if any #}
+{{ block.super }}
 <script>
     function copyTokenToClipboard() {
         var tokenInput = document.getElementById("apiToken");
         if (!tokenInput) return;
 
+        var copyButton = document.querySelector(".copy-token-btn"); // Updated selector
+        var copyIconDefault = copyButton.querySelector(".copy-icon-default");
+        var copyIconSuccess = copyButton.querySelector(".copy-icon-success");
+        var copyStatusMessage = document.querySelector(".copy-status-message");
+
         tokenInput.select();
-        tokenInput.setSelectionRange(0, 99999);
+        tokenInput.setSelectionRange(0, 99999); // For mobile devices
 
         try {
             var successful = document.execCommand('copy');
-            var copyStatus = document.getElementById("copyStatus");
             if (successful) {
-                copyStatus.textContent = "Copied!";
-                copyStatus.style.color = "green";
+                copyIconDefault.style.display = 'none';
+                copyIconSuccess.style.display = 'inline';
+                copyStatusMessage.textContent = "Copied!";
+                copyStatusMessage.style.color = '#28a745';
+                copyStatusMessage.style.display = 'inline';
+
+                setTimeout(function () {
+                    copyIconDefault.style.display = 'inline';
+                    copyIconSuccess.style.display = 'none';
+                    copyStatusMessage.style.display = 'none';
+                }, 2000);
             } else {
-                copyStatus.textContent = "Copy failed!";
-                copyStatus.style.color = "red";
+                throw new Error('Copy command failed');
             }
-            copyStatus.style.display = "inline";
-            setTimeout(function () {
-                copyStatus.style.display = "none";
-            }, 2000);
         } catch (err) {
-            var copyStatus = document.getElementById("copyStatus");
-            copyStatus.textContent = "Oops, unable to copy";
-            copyStatus.style.color = "red";
-            copyStatus.style.display = "inline";
+            console.error("Failed to copy token: ", err);
+            copyStatusMessage.textContent = "Failed!";
+            copyStatusMessage.style.color = '#dc3545';
+            copyStatusMessage.style.display = 'inline';
+            copyIconDefault.style.display = 'inline';
+            copyIconSuccess.style.display = 'none';
+
             setTimeout(function () {
-                copyStatus.style.display = "none";
-            }, 2000);
+                copyStatusMessage.style.display = 'none';
+            }, 3000);
         }
 
         if (window.getSelection) {
